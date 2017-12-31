@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: com.cloudera.sparkts:sparkts:0.4.1">
+    <CLASSES>
+      <root url="jar://D:/tools/apache-maven-3.3.9/repository/com/cloudera/sparkts/sparkts/0.4.1/sparkts-0.4.1.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://D:/tools/apache-maven-3.3.9/repository/com/cloudera/sparkts/sparkts/0.4.1/sparkts-0.4.1-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://D:/tools/apache-maven-3.3.9/repository/com/cloudera/sparkts/sparkts/0.4.1/sparkts-0.4.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

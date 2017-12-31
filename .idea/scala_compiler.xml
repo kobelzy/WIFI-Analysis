@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ScalaCompilerConfiguration">
+    <profile name="Maven 1" modules="computing-core">
+      <parameters>
+        <parameter value="-dependencyfile" />
+        <parameter value="D:\WorkSpace\ScalaWorkSpace\WIFI-Analysis\computing-core\target/.scala_dependencies" />
+      </parameters>
+    </profile>
+  </component>
+</project>

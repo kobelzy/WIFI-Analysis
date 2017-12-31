@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: commons-codec:commons-codec:1.5">
+    <CLASSES>
+      <root url="jar://D:/tools/apache-maven-3.3.9/repository/commons-codec/commons-codec/1.5/commons-codec-1.5.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://D:/tools/apache-maven-3.3.9/repository/commons-codec/commons-codec/1.5/commons-codec-1.5-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://D:/tools/apache-maven-3.3.9/repository/commons-codec/commons-codec/1.5/commons-codec-1.5-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

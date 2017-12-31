@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/computing-core/computing-core.iml" filepath="$PROJECT_DIR$/computing-core/computing-core.iml" />
+      <module fileurl="file://$PROJECT_DIR$/kafka-core/kafka-core.iml" filepath="$PROJECT_DIR$/kafka-core/kafka-core.iml" />
+      <module fileurl="file://$PROJECT_DIR$/web-server/web-server.iml" filepath="$PROJECT_DIR$/web-server/web-server.iml" />
+      <module fileurl="file://$PROJECT_DIR$/web-ui/web-ui.iml" filepath="$PROJECT_DIR$/web-ui/web-ui.iml" />
+    </modules>
+  </component>
+</project>

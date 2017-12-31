@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org.typelevel:machinist_2.11:0.6.1">
+    <CLASSES>
+      <root url="jar://D:/tools/apache-maven-3.3.9/repository/org/typelevel/machinist_2.11/0.6.1/machinist_2.11-0.6.1.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://D:/tools/apache-maven-3.3.9/repository/org/typelevel/machinist_2.11/0.6.1/machinist_2.11-0.6.1-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://D:/tools/apache-maven-3.3.9/repository/org/typelevel/machinist_2.11/0.6.1/machinist_2.11-0.6.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

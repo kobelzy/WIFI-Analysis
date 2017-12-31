@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org.scalanlp:breeze-macros_2.11:0.13.1">
+    <CLASSES>
+      <root url="jar://D:/tools/apache-maven-3.3.9/repository/org/scalanlp/breeze-macros_2.11/0.13.1/breeze-macros_2.11-0.13.1.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://D:/tools/apache-maven-3.3.9/repository/org/scalanlp/breeze-macros_2.11/0.13.1/breeze-macros_2.11-0.13.1-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://D:/tools/apache-maven-3.3.9/repository/org/scalanlp/breeze-macros_2.11/0.13.1/breeze-macros_2.11-0.13.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

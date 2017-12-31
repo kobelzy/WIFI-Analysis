@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                                        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+
+
+
+   <!--<bean id="shopMapper" claShopMapperImplImpl"/>-->
+   <bean id="userMapper" class="com.lzy.mapper.Impl.UserMapperImpl"/>
+   <bean id="probeUserMapper" class="com.lzy.mapper.Impl.ProbeUserMapperImpl"/>
+   <!--<bean id="propertyMapper" claPropertyMapperImplImpl"/>-->
+   <bean id="queryHistoryDataMapper" class="com.lzy.mapper.Impl.QueryHistoryDataMapperImpl"/>
+   <bean id="userFlowMapper" class="com.lzy.mapper.Impl.UserFlowMapperImpl"/>
+   <bean id="userVisitMapper" class="com.lzy.mapper.Impl.UserVisitMapperImpl"/>
+   <bean id="userVisitTimeMapper" class="com.lzy.mapper.Impl.UserVisitTimeMapperImpl"/>
+
+   <!-- <bean id="loginService" claLoginServiceImplImpl"/>
+    <bean id="userVisitService" claUserVisitServiceImplImpl"/>
+    <bean id="userVisitTimeService" claUserVisitTimeServiceImplImpl"/>
+
+    <bean id="shopService" claShopServiceImplImpl"/>
+
+
+    <bean id="queryHistoryData" claQueryHistoryDataServiceImplImpl"/>
+
+
+
+
+    <bean id="probeUserService" claProbeUserServiceImplImpl"/>
+
+
+    <bean id="propertyService" claPropertyServiceImplImpl"/> -->
+
+</beans>
