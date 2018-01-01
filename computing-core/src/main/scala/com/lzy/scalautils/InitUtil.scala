@@ -14,7 +14,6 @@ import org.apache.spark.streaming.kafka010.KafkaUtils
 import org.apache.spark.streaming.kafka010.LocationStrategies.PreferConsistent
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.codehaus.jackson.map.deser.std.StringDeserializer
-import org.spark_project.guava.eventbus.Subscribe
 
 /**
   * 初始化spark环境工具
@@ -103,7 +102,7 @@ object InitUtil {
       streamingContext,PreferConsistent,
       Subscribe[String,String](topics,kafkaParams)
     )
-    stream.map(record=>(record.key,record.value)
+    stream.map(record=>(record.key,record.value))
   }
 
   /**
