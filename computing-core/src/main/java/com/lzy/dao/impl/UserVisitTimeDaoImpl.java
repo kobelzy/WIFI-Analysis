@@ -9,9 +9,11 @@ import redis.clients.jedis.ShardedJedis;
 import java.util.List;
 
 /**
- * Created by Wang Han on 2017/6/20 16:40.
- * E-mail address is wanghan0501@vip.qq.com.
- * Copyright © 2017 Wang Han. SCU. All Rights Reserved.
+ * Created by Liu Zi Yang on 2017/6/24 18:22.
+ * E-mail address is kobeliuziyang@qq.com
+ * Copyright © 2017 Liuziyang. All Rights Reserved.
+ *
+ * @author Liuziyang
  */
 public class UserVisitTimeDaoImpl extends BaseDao {
 

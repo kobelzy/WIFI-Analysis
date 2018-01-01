@@ -4,12 +4,11 @@ import org.apache.log4j.Logger;
 
 /**
  * 字符串工具类
- * <p>
- * Created by Wang Han on 2017/3/29 14:46.
- * E-mail address is wanghan0501@vip.qq.com.
- * Copyright © Wang Han SCU. All Rights Reserved.
+ * Created by Liu Zi Yang on 2017/6/24 18:22.
+ * E-mail address is kobeliuziyang@qq.com
+ * Copyright © 2017 Liuziyang. All Rights Reserved.
  *
- * @author Wang Han
+ * @author Liuziyang
  */
 public class StringUtil {
 

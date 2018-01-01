@@ -7,10 +7,10 @@
     <properties resource="db.properties"/>
 
     <typeAliases>
-        <typeAlias type="edu.cs.scu.bean.TaskBean" alias="taskBean"/>
-        <typeAlias type="edu.cs.scu.bean.PropertyBean" alias="propertyBean"/>
-        <typeAlias type="edu.cs.scu.bean.ShopBean" alias="shopBean"/>
-        <typeAlias type="edu.cs.scu.bean.VendorMacBean" alias="vendorMacBean"/>
+        <typeAlias type="com.lzy.bean.TaskBean" alias="taskBean"/>
+        <typeAlias type="com.lzy.bean.PropertyBean" alias="propertyBean"/>
+        <typeAlias type="com.lzy.bean.ShopBean" alias="shopBean"/>
+        <typeAlias type="com.lzy.bean.VendorMacBean" alias="vendorMacBean"/>
     </typeAliases>
 
     <environments default="development">
@@ -28,9 +28,9 @@
         </environment>
     </environments>
     <mappers>
-        <mapper resource="edu/cs/scu/mapper/TaskDao.xml"/>
-        <mapper resource="edu/cs/scu/mapper/PropertyDao.xml"/>
-        <mapper resource="edu/cs/scu/mapper/ShopDao.xml"/>
-        <mapper resource="edu/cs/scu/mapper/VendorMacDao.xml"/>
+        <mapper resource="com/lzy/mapper/TaskDao.xml"/>
+        <mapper resource="com/lzy/mapper/PropertyDao.xml"/>
+        <mapper resource="com/lzy/mapper/ShopDao.xml"/>
+        <mapper resource="com/lzy/mapper/VendorMacDao.xml"/>
     </mappers>
 </configuration>

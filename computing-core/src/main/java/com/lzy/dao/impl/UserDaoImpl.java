@@ -15,10 +15,11 @@ import java.util.Map;
 
 /**
  * 用户信息数据库接口
- * <p>
- * Created by Wang Han on 2017/6/19 13:58.
- * E-mail address is wanghan0501@vip.qq.com.
- * Copyright © 2017 Wang Han. SCU. All Rights Reserved.
+ * Created by Liu Zi Yang on 2017/6/24 18:22.
+ * E-mail address is kobeliuziyang@qq.com
+ * Copyright © 2017 Liuziyang. All Rights Reserved.
+ *
+ * @author Liuziyang
  */
 public class UserDaoImpl extends BaseDao {
 

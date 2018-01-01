@@ -5,11 +5,11 @@ import com.lzy.bean.VendorMacBean;
 import java.util.List;
 
 /**
- * Created by Wang Han on 2017/6/19 16:43.
- * E-mail address is wanghan0501@vip.qq.com.
- * Copyright © 2017 Wang Han. SCU. All Rights Reserved.
+ * Created by Liu Zi Yang on 2017/6/24 18:22.
+ * E-mail address is kobeliuziyang@qq.com
+ * Copyright © 2017 Liuziyang. All Rights Reserved.
  *
- * @author Wang Han
+ * @author Liuziyang
  */
 public interface VendorMacDao {
     // 添加信息
