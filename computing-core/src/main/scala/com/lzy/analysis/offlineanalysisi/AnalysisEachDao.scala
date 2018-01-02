@@ -2,6 +2,7 @@ package com.lzy.analysis.offlineanalysisi
 
 
 import com.lzy.common.constants.AnalysisConstants
+import com.lzy.javautils.ParseJson
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.mapred.TableInputFormat
 import org.apache.hadoop.hbase.util.Bytes
@@ -19,8 +20,8 @@ def analysisStayTime(sc:SparkContext,conf:Configuration)={
   val count=hBaseRDD.count()
   hBaseRDD.foreach{case(_,result)=>{
     val dataList=Bytes.toString(result.getValue(AnalysisConstants.DATA_CF,AnalysisConstants.dataList))
-
-
+val macList=ParseJson.jsonToList(dataList)
+val probeId=Bytes.toString(result.getValue(AnalysisConstants.PROBEINFO_CF,AnalysisConstants.probe_id))
 
 
   }}
