@@ -14,14 +14,14 @@ import java.io.Serializable;
 public class UserVisitBean implements Serializable {
     private static final long serialVersinUID = 351877796426921776L;
 
-    private int shopId;
-    private String mmac;
-    private long time;
-    private int totalFlow;
-    private int checkInFlow;
-    private double checkInRate;
-    private double shallowVisitRate;
-    private double deepVisitRate;
+    private int shopId;     //店铺id
+    private String mmac;    //嗅探器mac
+    private long time;    //时间戳
+    private int totalFlow;   //总流量
+    private int checkInFlow;    //
+    private double checkInRate;    //
+    private double shallowVisitRate;    //浅访问频率
+    private double deepVisitRate;     //深访问频率
 
     public UserVisitBean() {
 
