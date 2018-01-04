@@ -14,15 +14,15 @@ import java.io.Serializable;
 public class PropertyBean implements Serializable {
     private static final long serialVersinUID = 351877796426921776L;
 
-    private int propertyId;
-    private int shopId;
-    private String mmac;
-    private String visitCycle;
-    private double visitRange;
-    private int visitRSSI;
-    private String activityDegree;
+    private int propertyId;    //配置项id
+    private int shopId;        //店铺id
+    private String mmac;          //嗅探器连接的wifi的mac
+    private String visitCycle;    //访问wifi周期
+    private double visitRange;    //访问wifi距离
+    private int visitRSSI;         //wifirssi （名称）
+    private String activityDegree;   
     private String visitTimeSplit;
-    private boolean propertyType;
+    private boolean propertyType;  //配置类型
 
     public PropertyBean() {
 
