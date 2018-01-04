@@ -11,12 +11,12 @@ package com.lzy.bean;
  */
 public class MacDataBean {
     private String router;
-    private Integer rssi;
-    private Double range;
-    private String tmc;
-    private String mac;
-    private String tc;
-    private String ds;
+    private Integer rssi;   //手机连接的wifi的rssi
+    private Double range;    //手机与嗅探器的距离
+    private String tmc;     //手机连接的wifi的mac
+    private String mac;        //手机的mac
+    private String tc;       //手机是否连接上wifi
+    private String ds;      //手机是否属于休眠状态
 
     public MacDataBean(){}
     public MacDataBean(String router, Integer rssi, Double range, String tmc, String mac, String tc, String ds){
