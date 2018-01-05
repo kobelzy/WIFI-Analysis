@@ -39,7 +39,7 @@ public class DateUtil {
     public static long parseTime(String time, TimeTypes timeTypes) {
         try {
             switch (timeTypes) {
-                case ENGLISH_TIME_FORMAT:
+                case ENGLISH_TIME_FORMAT://english
                     SimpleDateFormat englishTimeFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy", Locale.ENGLISH);
                     return englishTimeFormat.parse(time).getTime();
                 case TIME_FORMAT:

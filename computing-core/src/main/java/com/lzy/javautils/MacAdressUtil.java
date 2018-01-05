@@ -23,6 +23,7 @@ public class MacAdressUtil {
      * @return
      */
     public static String getVendorByMac(String macAddress) {
+
         return getVendorByMacPrefix(getMacPrefix(macAddress));
     }
 
