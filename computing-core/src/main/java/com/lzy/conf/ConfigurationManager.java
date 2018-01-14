@@ -58,6 +58,7 @@ public class ConfigurationManager {
     }
 
     /**
+     * /.
      * 获取Integer型配置项
      *
      * @param key
@@ -76,7 +77,7 @@ public class ConfigurationManager {
     }
 
     /**
-     * 获取Boolean型配置项
+     * 获取Boolean型配/置项
      *
      * @param key
      * @return

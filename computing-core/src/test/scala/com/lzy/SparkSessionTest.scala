@@ -8,7 +8,7 @@ import org.apache.spark.sql.SparkSession
 object SparkSessionTest {
   def main(args: Array[String]): Unit = {
     val spark=SparkSession.builder().appName("test").getOrCreate()
-    spark.sparkContext
+
 
 
   }

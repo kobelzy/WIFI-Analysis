@@ -4,19 +4,22 @@ package com.lzy.analysis.offlineanalysisi
 import com.lzy.common.constants.AnalysisConstants
 import com.lzy.javautils.ParseJson
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.hbase.mapred.TableInputFormat
+import org.apache.hadoop.hbase.mapreduce.TableInputFormat
 import org.apache.hadoop.hbase.util.Bytes
-import org.apache.spark.SparkContext
-
+import org.apache.spark.{SparkContext, rdd}
+import org.apache.spark.sql.SparkSession
+import org.apache.hadoop.hbase.io.ImmutableBytesWritable
+import org.apache.hadoop.hbase.client.Result
 /**
   * Created by Administrator on 2018/1/2.
   */
 object AnalysisEachDao {
   def analysisStayTime(sc: SparkContext, conf: Configuration) = {
     val hBaseRDD = sc.newAPIHadoopRDD(conf, classOf[TableInputFormat],
-      classOf[org.apache.hadoop.hbase.io.ImmutableBytesWritable],
-      classOf[org.apache.hadoop.hbase.client.Result]
+      classOf[ImmutableBytesWritable],
+      classOf[Result]
     )
+
     val count = hBaseRDD.count()
     hBaseRDD.foreach { case (_, result) => {
       val dataList = Bytes.toString(result.getValue(AnalysisConstants.DATA_CF, AnalysisConstants.dataList))
