@@ -39,10 +39,10 @@ object Hource_price {
     import spark.implicits._
     val all_df: DataFrame = train.drop("SalePrice")
 //      .union(test)
-
+.withColumn("MSSubClass",$"MSSubClass".cast(IntegerType))
     //    all_df.printSchema()
     /*
-    修改schema，但是失败了。
+//    修改schema，但是失败了。
      */
     /*al MSSubClass_new:DataFrame=all_df.select($"MSSubClass".cast(StringType))
 //    MSSubClass_new.printSchema()
@@ -62,13 +62,13 @@ object Hource_price {
     val pipeLine = new Pipeline()
     val pipelineStages = ArrayBuffer[PipelineStage]()
 
-    val col_stringType_List: List[String] = "MSSubClass" +: all_df.schema.toList.filter(_.dataType == StringType).map(_.name)
+    val col_stringType_List: List[String] =  all_df.schema.toList.filter(_.dataType == StringType).map(_.name)
     // 或者   val col_stringType_List2:immutable.IndexedSeq[Any]="MSSubClass"+:all_df.dtypes.map(_._2).filter(_ == "StringType")
     println("String类型字段数：" + col_stringType_List.size)
     val col_numericerType_haveId_List: List[StructField] = all_df.schema.toList.filter(_.dataType == IntegerType)
 
     //      .toBuffer-="Id"-="MSSubClass"
-    val col_numericerType_List = col_numericerType_haveId_List.toBuffer.filter(line => line.name != "Id" && line.name != "MSSubClass").toList
+    val col_numericerType_List = col_numericerType_haveId_List.tail
     println(col_numericerType_List)
 
     println("数值类型字段数：" + col_numericerType_List.size)
