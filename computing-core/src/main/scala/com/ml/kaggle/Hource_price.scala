@@ -1,9 +1,10 @@
 package com.ml.kaggle
 
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.ml.feature.{OneHotEncoder, StandardScaler, StringIndexer, VectorAssembler}
-import org.apache.spark.ml.regression.{LinearRegression, RandomForestRegressor}
-import org.apache.spark.ml.tuning.ParamGridBuilder
+import org.apache.spark.ml.evaluation.RegressionEvaluator
+import org.apache.spark.ml.feature._
+import org.apache.spark.ml.regression.{DecisionTreeRegressor, LinearRegression, RandomForestRegressor}
+import org.apache.spark.ml.tuning.{ParamGridBuilder, TrainValidationSplit}
 import org.apache.spark.ml.{Pipeline, PipelineStage}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -37,9 +38,10 @@ object Hource_price {
     //    train.show(10,truncate = false)
     //    test.show(10,truncate = false)
     import spark.implicits._
-    val all_df: DataFrame = train.drop("SalePrice")
-//      .union(test)
-.withColumn("MSSubClass",$"MSSubClass".cast(IntegerType))
+    val all_df: DataFrame = train
+      //      .drop("SalePrice")
+      //      .union(test)
+      .withColumn("MSSubClass", $"MSSubClass".cast(StringType))
     //    all_df.printSchema()
     /*
 //    修改schema，但是失败了。
@@ -62,13 +64,13 @@ object Hource_price {
     val pipeLine = new Pipeline()
     val pipelineStages = ArrayBuffer[PipelineStage]()
 
-    val col_stringType_List: List[String] =  all_df.schema.toList.filter(_.dataType == StringType).map(_.name)
+    val col_stringType_List: List[String] = all_df.schema.toList.filter(_.dataType == StringType).map(_.name)
     // 或者   val col_stringType_List2:immutable.IndexedSeq[Any]="MSSubClass"+:all_df.dtypes.map(_._2).filter(_ == "StringType")
     println("String类型字段数：" + col_stringType_List.size)
     val col_numericerType_haveId_List: List[StructField] = all_df.schema.toList.filter(_.dataType == IntegerType)
 
     //      .toBuffer-="Id"-="MSSubClass"
-    val col_numericerType_List = col_numericerType_haveId_List.tail
+    val col_numericerType_List = col_numericerType_haveId_List.filter(_.name != "SalePrice").tail
     println(col_numericerType_List)
 
     println("数值类型字段数：" + col_numericerType_List.size)
@@ -95,13 +97,17 @@ object Hource_price {
     //将numericals的数据按照标准差缩放进行标准化
     val standardScaler = new StandardScaler()
       .setInputCol("numericals").setOutputCol("standarScaler_numericals")
-    pipelineStages += standardScaler
+//    pipelineStages += standardScaler
+//或者按照正则化缩放
+    val normalizer=new Normalizer()
+      .setInputCol("numericals").setOutputCol("standarScaler_numericals")
+    pipelineStages += normalizer
 
     //4、全部特征归一化
     val vectorAssemblerFeatures = new VectorAssembler()
       .setOutputCol("features")
     //将被Onehot的结果与numericals放到一起。
-    val outputArray=col_stringType_List.map(_+"_onehoted").toBuffer+="numericals"
+    val outputArray = col_stringType_List.map(_ + "_onehoted").toBuffer += "numericals"
     vectorAssemblerFeatures.setInputCols(outputArray.toArray)
     pipelineStages += vectorAssemblerFeatures
 
@@ -109,22 +115,40 @@ object Hource_price {
       * 构建模型
       */
     //1、线性回归器
-    val lr=new LinearRegression()
-      .setMaxIter(10)
-    //2、随机僧林
-    val randomForest=new RandomForestRegressor()
-
+    val lr = new LinearRegression()
+      .setMaxIter(50)
+      .setLabelCol("SalePrice")
+//    pipelineStages += lr
+    //随机僧林
+    val randomForest = new RandomForestRegressor()
+    //决策树
+    val decisionTree=new DecisionTreeRegressor()
+      .setLabelCol("SalePrice")
+    pipelineStages+=decisionTree
     //2、构建参数矩阵
-val paramGrid=new ParamGridBuilder()
-      .addGrid(lr.regParam,Array(0.1,0.01))
-
+    val paramGrid = new ParamGridBuilder()
+//      .addGrid(lr.regParam, Array(0.1, 0.01))
+        .addGrid(decisionTree.maxBins,Array(128))
+        .addGrid(decisionTree.minInstancesPerNode,Array(1,5,10))
+      .build()
+    //3、构建评估器
+    val regressionEvaluator = new RegressionEvaluator()
+      .setLabelCol("SalePrice")
+    //4、构建检验器
+    val trainEvaluator = new TrainValidationSplit()
+      .setEstimatorParamMaps(paramGrid)
+      .setEvaluator(regressionEvaluator)
+      .setTrainRatio(0.8)
 
     //构建工作流
     pipeLine.setStages(pipelineStages.toArray)
-    val model = pipeLine.fit(all_df_notNull)
-    val testRestul = model.transform(all_df_notNull.limit(20))
-    testRestul.select("features").show(false)
-    println(testRestul.columns.length)
+    trainEvaluator.setEstimator(pipeLine)
+    val model = trainEvaluator.fit(all_df_notNull)
+    model.validationMetrics.zip(model.getEstimatorParamMaps).foreach(println(_))
+    println(model.getEvaluator.isLargerBetter)
+    //    val testRestul = model.transform(all_df_notNull.limit(20))
+    //    testRestul.select("features").show(false)
+    //    println(testRestul.columns.length)
   }
 
 
