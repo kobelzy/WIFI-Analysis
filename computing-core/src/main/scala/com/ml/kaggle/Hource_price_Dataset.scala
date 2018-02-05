@@ -113,6 +113,8 @@ object Hource_price_Dataset {
     val all_df_notNull = all_df.na.fill(column2meanMap)
     //    all_df_notNull.show(20,false)
 
+
+
     val all_ds = all_df_notNull.as[hosePriceCase]
       .map { case hosePriceCase => {
         val log_salePrice = Math.log1p(hosePriceCase.SalePrice)
