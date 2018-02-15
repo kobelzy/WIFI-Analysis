@@ -1,7 +1,10 @@
 package com.ml.kaggle
 
+import breeze.linalg.split
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark
+import org.apache.spark.ml.linalg
+import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
 import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType}
 
@@ -22,7 +25,7 @@ import spark.implicits._
     val path = "F:\\BaiduYunDownload\\Kaggle课程(关注公众号菜鸟要飞，免费领取200G+教程)\\Kaggle实战班(关注公众号菜鸟要飞，免费领取200G+教程)\\七月kaggle(关注公众号菜鸟要飞，免费领取200G+教程)\\代码(关注公众号菜鸟要飞，免费领取200G+教程)\\lecture07_销量预估\\data"
 
    val (train,test,features,featuresNonNumeric)=loadData(spark,path)
-    processData(train,test,features,featuresNonNumeric)
+    processData(spark,train,test,features,featuresNonNumeric)
 //    train.show(10,false)
 //    train.printSchema()
 //    test.show(10,false)
@@ -50,10 +53,34 @@ import spark.implicits._
     (train,test,features,featuresNonNumeric)
   }
 
-  def processData(train:DataFrame,test:DataFrame,features:Array[String],featuresNonNumeric:Array[String])={
+  def processData(spark:SparkSession,train:DataFrame,test:DataFrame,features:Array[String],featuresNonNumeric:Array[String])={
     val trainCleanSales=train.filter(train("Sales")>0)
     trainCleanSales.show(10,false)
+import spark.implicits._
+//   train.select($"Date".as[String]).map(date=>{
+//      val year=date.split(" ")(0).split("-")(0).toDouble
+//      val month=date.split(" ")(0).split("-")(1).toDouble
+//      val day=date.split(" ")(0).split("-")(2).toDouble
+//
+//    })
 
+
+    //January,February,March,April,May,June,July,August,September,October,November,December
+    //Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sept,Oct,Nov,Dec
+    val months=Array("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sept","Oct","Nov","Dec")
+    case class store2Vector(Store:Int,vector:linalg.Vector)
+    val promosDS =train.select($"Store".as[Int],$"PromoInterval".as[String])
+   val promosDSs= promosDS.map(line=>{
+      val intervals=line._2.split(",")
+//      val promos=new Array[Int](12)
+      val promos=scala.collection.mutable.ArrayBuffer[(Int,Double)]()
+      intervals.foreach(month=>{
+        val index=months.indexOf(month)
+        promos+=Tuple2(index,1.0)
+      })
+      Row(line._1,Vectors.sparse(12,promos))
+    })
+    promosDS.show(10,false)
 
   }
   case class StoreCase()
