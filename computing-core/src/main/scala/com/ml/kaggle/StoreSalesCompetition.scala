@@ -12,6 +12,8 @@ import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType}
   * Created by Administrator on 2018/2/14.
   */
 object StoreSalesCompetition {
+  case class store2Vector(Store:Int,promos:Array[(Int,Double)])
+
   Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
 
   def main(args: Array[String]): Unit = {
@@ -42,8 +44,7 @@ import spark.implicits._
     val store=read.csv(path+"\\store.csv")
     val train_org=read.csv(path+"\\train.csv").withColumn("StateHoliday",$"StateHoliday".cast(StringType))
     //where build Join after,the Store will display two
-     val train =train_org.join(store,train_org("Store")===store("Store"),"left")
-
+     val train =train_org.join(store,train_org("Store")===store("Store"),"left").drop($"Store")
     val test_org: DataFrame =read.csv(path+"\\test.csv").withColumn("StateHoliday", $"StateHoliday".cast(StringType))
     val test: DataFrame =test_org.join(store,test_org("Store")===store("Store"),"left")
     val features:Array[String]=test.columns
@@ -68,9 +69,9 @@ import spark.implicits._
     //January,February,March,April,May,June,July,August,September,October,November,December
     //Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sept,Oct,Nov,Dec
     val months=Array("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sept","Oct","Nov","Dec")
-    case class store2Vector(Store:Int,vector:linalg.Vector)
     val promosDS =train.select($"Store".as[Int],$"PromoInterval".as[String])
-   val promosDSs= promosDS.map(line=>{
+    promosDS.show(10,false)
+   val promosDSs   = promosDS.map(line=>{
       val intervals=line._2.split(",")
 //      val promos=new Array[Int](12)
       val promos=scala.collection.mutable.ArrayBuffer[(Int,Double)]()
@@ -78,7 +79,7 @@ import spark.implicits._
         val index=months.indexOf(month)
         promos+=Tuple2(index,1.0)
       })
-      Row(line._1,Vectors.sparse(12,promos))
+     store2Vector(line._1,promos.toArray)
     })
     promosDS.show(10,false)
 
