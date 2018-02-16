@@ -12,7 +12,7 @@ import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType}
   * Created by Administrator on 2018/2/14.
   */
 object StoreSalesCompetition {
-  case class store2Vector(Store:Int,promos:Array[(Int,Double)])
+
 
   Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
 
@@ -54,7 +54,7 @@ import spark.implicits._
 //Date,StateHoliday,StoreType,Assortment,PromoInterval
     (train,test,features,featuresNonNumeric)
   }
-
+  case class store2Vector(Store:Int,promos:linalg.Vector)
   def processData(spark:SparkSession,train:DataFrame,test:DataFrame,features:Array[String],featuresNonNumeric:Array[String])={
     val trainCleanSales=train.filter(train("Sales")>0)
     trainCleanSales.show(10,false)
@@ -73,15 +73,16 @@ import spark.implicits._
     val promosDS =train.select($"Store".as[Int],$"PromoInterval".as[String])
     promosDS.show(10,false)
    val promosDSs   = promosDS.map(line=>{
-     if(line._2==null) {
-       val intervals = line._2.split(",")
+     val intervalsStr:String=line._2
+     if(intervalsStr!=null) {
+       val intervals = intervalsStr.split(",")
        //      val promos=new Array[Int](12)
        val promos = scala.collection.mutable.ArrayBuffer[(Int, Double)]()
        intervals.foreach(month => {
          val index = months.indexOf(month)
          promos += Tuple2(index, 1.0)
        })
-       store2Vector(line._1, promos.toArray)
+       store2Vector(line._1, linalg.Vectors.sparse(12,promos))
      }else{
        store2Vector(line._1,null)
      }
