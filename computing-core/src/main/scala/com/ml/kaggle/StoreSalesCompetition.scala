@@ -44,9 +44,10 @@ import spark.implicits._
     val store=read.csv(path+"\\store.csv")
     val train_org=read.csv(path+"\\train.csv").withColumn("StateHoliday",$"StateHoliday".cast(StringType))
     //where build Join after,the Store will display two
-     val train =train_org.join(store,train_org("Store")===store("Store"),"left").drop($"Store")
+     val train =train_org.join(store,Array("Store"),"left")
     val test_org: DataFrame =read.csv(path+"\\test.csv").withColumn("StateHoliday", $"StateHoliday".cast(StringType))
-    val test: DataFrame =test_org.join(store,test_org("Store")===store("Store"),"left")
+//    val test: DataFrame =test_org.join(store,test_org("Store")===store("Store"),"left")
+    val test: DataFrame =test_org.join(store,Array("Store"),"left")
     val features:Array[String]=test.columns
     val featuresNumeric:Seq[String]=test.schema.filter(line=>line.dataType==IntegerType).map(_.name)
     val featuresNonNumeric=features.filterNot(line=>featuresNumeric.contains(line))
@@ -72,16 +73,20 @@ import spark.implicits._
     val promosDS =train.select($"Store".as[Int],$"PromoInterval".as[String])
     promosDS.show(10,false)
    val promosDSs   = promosDS.map(line=>{
-      val intervals=line._2.split(",")
-//      val promos=new Array[Int](12)
-      val promos=scala.collection.mutable.ArrayBuffer[(Int,Double)]()
-      intervals.foreach(month=>{
-        val index=months.indexOf(month)
-        promos+=Tuple2(index,1.0)
-      })
-     store2Vector(line._1,promos.toArray)
+     if(line._2==null) {
+       val intervals = line._2.split(",")
+       //      val promos=new Array[Int](12)
+       val promos = scala.collection.mutable.ArrayBuffer[(Int, Double)]()
+       intervals.foreach(month => {
+         val index = months.indexOf(month)
+         promos += Tuple2(index, 1.0)
+       })
+       store2Vector(line._1, promos.toArray)
+     }else{
+       store2Vector(line._1,null)
+     }
     })
-    promosDS.show(10,false)
+    promosDSs.show(10,false)
 
   }
   case class StoreCase()
