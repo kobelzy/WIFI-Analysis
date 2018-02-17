@@ -51,44 +51,56 @@ object StoreSalesCompetition {
     (train, test, features, featuresNonNumeric)
   }
 
-  case class store2Vector(Store: Int, promos: linalg.Vector)
-case class store2Date(Store:Int,year:Double,month:Double,day:Double)
+  case class store2VectorCase(Store: Int, promos: linalg.Vector)
+
+  case class store2DateCase(Store: Int, year: Double, month: Double, day: Double)
+
   def processData(spark: SparkSession, train: DataFrame, test: DataFrame, features: Array[String], featuresNonNumeric: Array[String]) = {
     val trainCleanSales = train.filter(train("Sales") > 0)
-    trainCleanSales.show(10, false)
+    //year month day process,promo interval
+    val trainDF = processDateAndpromos(spark, trainCleanSales)
+    val testDF = processDateAndpromos(spark, test)
+    //Features set
+    val noisyFeatures=Array("Id","Date")
+   val features_drop_noisy= features.filterNot(noisyFeatures.contains(_))
+    val featuresNonNumeric_drop_noisy=featuresNonNumeric.filterNot(noisyFeatures.contains(_))
+  }
+
+  /**
+    *
+    * @param spark
+    * @param data
+    */
+  def processDateAndpromos(spark: SparkSession, data: DataFrame): DataFrame = {
     import spark.implicits._
-    val store2DateDS: Dataset[store2Date] =train.select($"Store".as[Int],$"Date".as[String]).map{case (store,date) => {
+    val store2DateDS: Dataset[store2DateCase] = data.select($"Store".as[Int], $"Date".as[String]).map { case (store, date) => {
       val year = date.split(" ")(0).split("-")(0).toDouble
       val month = date.split(" ")(0).split("-")(1).toDouble
       val day = date.split(" ")(0).split("-")(2).toDouble
-      store2Date(store,year,month,day)
-    }}
-    store2DateDS.show(10,false)
+      store2DateCase(store, year, month, day)
+    }
+    }
 
     //January,February,March,April,May,June,July,August,September,October,November,December
     //Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sept,Oct,Nov,Dec
     val months = Array("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec")
-    val promosDS = train.select($"Store".as[Int], $"PromoInterval".as[String])
-    promosDS.show(10, false)
-    val promosDSs = promosDS.map(line => {
-      val intervalsStr: String = line._2
-      if (intervalsStr != null) {
-        val intervals = intervalsStr.split(",")
-        //      val promos=new Array[Int](12)
-        val promos = scala.collection.mutable.ArrayBuffer[(Int, Double)]()
-        intervals.foreach(month => {
-          val index = months.indexOf(month)
-          promos += Tuple2(index, 1.0)
-        })
-        store2Vector(line._1, linalg.Vectors.sparse(12, promos))
-      } else {
-        store2Vector(line._1, null)
-      }
-    })
-    promosDSs.show(10, false)
-
+    val promosDS = data.select($"Store".as[Int], $"PromoInterval".as[String])
+      .map(line => {
+        val intervalsStr: String = line._2
+        if (intervalsStr != null) {
+          val intervals = intervalsStr.split(",")
+          //      val promos=new Array[Int](12)
+          val promos = scala.collection.mutable.ArrayBuffer[(Int, Double)]()
+          intervals.foreach(month => {
+            val index = months.indexOf(month)
+            promos += Tuple2(index, 1.0)
+          })
+          store2VectorCase(line._1, linalg.Vectors.sparse(12, promos))
+        } else {
+          store2VectorCase(line._1, null)
+        }
+      })
+    data.join(store2DateDS, Array("Store"), "left").join(promosDS, Array("Store"), "left")
   }
-
-  case class StoreCase()
 
 }
