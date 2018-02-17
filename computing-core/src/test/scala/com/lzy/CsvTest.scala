@@ -1,6 +1,7 @@
 package com.lzy
 
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.sql.types.DoubleType
 import org.apache.spark.sql.{Dataset, RelationalGroupedDataset, SparkSession}
 
 /**
@@ -33,12 +34,17 @@ object CsvTest {
     //          _=>println("其他")
     //    }
     //    })
-    implicit val matchError = org.apache.spark.sql.Encoders.scalaInt
-//    implicit val doubels =    org.apache.spark.sql.Encoders.scalaDouble
-    val result= test.select("BsmtHalfBath")
-//      .map(row => row.getAs[Int](0))
-result.foreach(println(_))
-    println(test.count())
-    println(result.count())
+//    implicit val matchError = org.apache.spark.sql.Encoders.scalaInt
+////    implicit val doubels =    org.apache.spark.sql.Encoders.scalaDouble
+//    val result= test.select("BsmtHalfBath")
+////      .map(row => row.getAs[Int](0))
+//result.foreach(println(_))
+//    println(test.count())
+//    println(result.count())
+    import spark.implicits._
+    val schema=Array("aa","bb")
+   val newt= test.withColumn("MSSubClass", $"MSSubClass".cast(DoubleType))
+    newt.printSchema()
+newt.show(10,false)
   }
 }

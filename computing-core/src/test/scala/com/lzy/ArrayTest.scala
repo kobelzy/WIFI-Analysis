@@ -18,6 +18,9 @@ object ArrayTest {
     println(arr2.mkString(","))
 arr2.toBuffer
     val arr3=Array[List[Int]]()
+
+    val array=new Array[Long](12)
+    array.foreach(print(_))
   }
   def test(arr:ArrayBuffer[Int])={
     arr+=10
