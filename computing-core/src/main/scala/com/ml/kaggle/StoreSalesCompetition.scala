@@ -24,9 +24,11 @@ object StoreSalesCompetition {
 
     val (train, test, features, featuresNonNumeric) = loadData(spark, path)
     processData(spark, train, test, features, featuresNonNumeric)
-    //    train.show(10,false)
-    //    train.printSchema()
+        train.show(10,false)
+        train.printSchema()
     //    test.show(10,false)
+
+
     println(features.mkString(","))
     println("Non")
     println(featuresNonNumeric.mkString(","))
@@ -43,10 +45,16 @@ object StoreSalesCompetition {
     val train = train_org.join(store, Array("Store"), "left")
     val test_org: DataFrame = read.csv(path + "\\test.csv").withColumn("StateHoliday", $"StateHoliday".cast(StringType))
     //    val test: DataFrame =test_org.join(store,test_org("Store")===store("Store"),"left")
-    val test: DataFrame = test_org.join(store, Array("Store"), "left")
+    val test: DataFrame = test_org.join(store, Seq("Store"), "left")
+    test.select("Store").show(10,false)
     val features: Array[String] = test.columns
     val featuresNumeric: Seq[String] = test.schema.filter(line => line.dataType == IntegerType).map(_.name)
     val featuresNonNumeric = features.filterNot(line => featuresNumeric.contains(line))
+
+     val nullFeatures= featuresNumeric.filterNot(_=="Id").map(feature=>{
+      (feature,test.filter( test(feature).isNull).count())
+    })
+    nullFeatures.foreach(println(_))
     //Date,StateHoliday,StoreType,Assortment,PromoInterval
     (train, test, features, featuresNonNumeric)
   }
@@ -64,6 +72,8 @@ object StoreSalesCompetition {
     val noisyFeatures=Array("Id","Date")
    val features_drop_noisy= features.filterNot(noisyFeatures.contains(_))
     val featuresNonNumeric_drop_noisy=featuresNonNumeric.filterNot(noisyFeatures.contains(_))
+    val fillMap=scala.collection.mutable.Map[String,Any]()
+    fillMap+=("Open"->1,)
   }
 
   /**
