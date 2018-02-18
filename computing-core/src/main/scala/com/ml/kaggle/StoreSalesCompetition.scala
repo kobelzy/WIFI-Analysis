@@ -40,10 +40,21 @@ object StoreSalesCompetition {
     val read = spark.read.option("header", "true").option("nullValue", "NA").option("inferSchema", "true")
 
     val store = read.csv(path + "\\store.csv")
-    val train_org = read.csv(path + "\\train.csv").withColumn("StateHoliday", $"StateHoliday".cast(StringType))
+    val train_org = read.csv(path + "\\train.csv")
+      .withColumn("StateHoliday", $"StateHoliday".cast(StringType))
+      .withColumn("DayOfWeek", $"DayOfWeek".cast(StringType))
+      .withColumn("Open", $"Open".cast(StringType))
+      .withColumn("Promo", $"Promo".cast(StringType))
+      .withColumn("SchoolHoliday", $"SchoolHoliday".cast(StringType))
+      .withColumn("Promo2", $"Promo2".cast(StringType))
+      .withColumn("SchoolHoliday", $"SchoolHoliday".cast(StringType))
+      .withColumn("SchoolHoliday", $"SchoolHoliday".cast(StringType))
     //where build Join after,the Store will display two
     val train = train_org.join(store, Array("Store"), "left")
-    val test_org: DataFrame = read.csv(path + "\\test.csv").withColumn("StateHoliday", $"StateHoliday".cast(StringType))
+
+    train.printSchema()
+    val test_org: DataFrame = read.csv(path + "\\test.csv")
+      .withColumn("StateHoliday", $"StateHoliday".cast(StringType))
     //    val test: DataFrame =test_org.join(store,test_org("Store")===store("Store"),"left")
     val test: DataFrame = test_org.join(store, Seq("Store"), "left")
     test.select("Store").show(10,false)
@@ -73,7 +84,7 @@ object StoreSalesCompetition {
    val features_drop_noisy= features.filterNot(noisyFeatures.contains(_))
     val featuresNonNumeric_drop_noisy=featuresNonNumeric.filterNot(noisyFeatures.contains(_))
     val fillMap=scala.collection.mutable.Map[String,Any]()
-    fillMap+=("Open"->1,)
+    fillMap+=("Open"->1)
   }
 
   /**
