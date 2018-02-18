@@ -40,21 +40,29 @@ object StoreSalesCompetition {
     val read = spark.read.option("header", "true").option("nullValue", "NA").option("inferSchema", "true")
 
     val store = read.csv(path + "\\store.csv")
+      .withColumn("Promo2", $"Promo2".cast(StringType))
+      .withColumn("CompetitionOpenSinceMonth", $"CompetitionOpenSinceMonth".cast(StringType))
+      .withColumn("CompetitionOpenSinceYear", $"CompetitionOpenSinceYear".cast(StringType))
+      .withColumn("Promo2SinceWeek", $"Promo2SinceWeek".cast(StringType))
+      .withColumn("Promo2SinceYear", $"Promo2SinceYear".cast(StringType))
+
     val train_org = read.csv(path + "\\train.csv")
       .withColumn("StateHoliday", $"StateHoliday".cast(StringType))
       .withColumn("DayOfWeek", $"DayOfWeek".cast(StringType))
       .withColumn("Open", $"Open".cast(StringType))
       .withColumn("Promo", $"Promo".cast(StringType))
       .withColumn("SchoolHoliday", $"SchoolHoliday".cast(StringType))
-      .withColumn("Promo2", $"Promo2".cast(StringType))
-      .withColumn("SchoolHoliday", $"SchoolHoliday".cast(StringType))
-      .withColumn("SchoolHoliday", $"SchoolHoliday".cast(StringType))
+
     //where build Join after,the Store will display two
     val train = train_org.join(store, Array("Store"), "left")
 
     train.printSchema()
     val test_org: DataFrame = read.csv(path + "\\test.csv")
       .withColumn("StateHoliday", $"StateHoliday".cast(StringType))
+      .withColumn("DayOfWeek", $"DayOfWeek".cast(StringType))
+      .withColumn("Open", $"Open".cast(StringType))
+      .withColumn("Promo", $"Promo".cast(StringType))
+      .withColumn("SchoolHoliday", $"SchoolHoliday".cast(StringType))
     //    val test: DataFrame =test_org.join(store,test_org("Store")===store("Store"),"left")
     val test: DataFrame = test_org.join(store, Seq("Store"), "left")
     test.select("Store").show(10,false)
@@ -125,3 +133,25 @@ object StoreSalesCompetition {
   }
 
 }
+
+
+/*
+ |-- Store: integer (nullable = true)
+ |-- DayOfWeek: string (nullable = true)
+ |-- Date: timestamp (nullable = true)
+ |-- Sales: integer (nullable = true)
+ |-- Customers: integer (nullable = true)
+ |-- Open: string (nullable = true)
+ |-- Promo: string (nullable = true)
+ |-- StateHoliday: string (nullable = true)
+ |-- SchoolHoliday: string (nullable = true)
+ |-- StoreType: string (nullable = true)
+ |-- Assortment: string (nullable = true)
+ |-- CompetitionDistance: integer (nullable = true)
+ |-- CompetitionOpenSinceMonth: integer (nullable = true)
+ |-- CompetitionOpenSinceYear: integer (nullable = true)
+ |-- Promo2: string (nullable = true)
+ |-- Promo2SinceWeek: integer (nullable = true)
+ |-- Promo2SinceYear: integer (nullable = true)
+ |-- PromoInterval: string (nullable = true)
+* */
