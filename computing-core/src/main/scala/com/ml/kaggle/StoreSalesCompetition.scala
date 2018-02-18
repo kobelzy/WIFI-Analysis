@@ -1,7 +1,8 @@
 package com.ml.kaggle
 
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.ml.linalg
+import org.apache.spark.ml
+import org.apache.spark.ml.{feature, linalg}
 import org.apache.spark.sql.types.{IntegerType, StringType}
 import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
 
@@ -24,9 +25,6 @@ object StoreSalesCompetition {
 
     val (train, test, features, featuresNonNumeric) = loadData(spark, path)
     processData(spark, train, test, features, featuresNonNumeric)
-        train.show(10,false)
-        train.printSchema()
-    //    test.show(10,false)
 
 
     println(features.mkString(","))
@@ -65,15 +63,19 @@ object StoreSalesCompetition {
       .withColumn("SchoolHoliday", $"SchoolHoliday".cast(StringType))
     //    val test: DataFrame =test_org.join(store,test_org("Store")===store("Store"),"left")
     val test: DataFrame = test_org.join(store, Seq("Store"), "left")
-    test.select("Store").show(10,false)
-    val features: Array[String] = test.columns
+    val features: Array[String] = train.columns
     val featuresNumeric: Seq[String] = test.schema.filter(line => line.dataType == IntegerType).map(_.name)
     val featuresNonNumeric = features.filterNot(line => featuresNumeric.contains(line))
 
-     val nullFeatures= featuresNumeric.filterNot(_=="Id").map(feature=>{
+    features.filterNot(_=="Id").map(feature=>{
+      (feature,train.filter( train(feature).isNull).count())
+    }).foreach(println(_))
+
+    features.filterNot(word=>word=="Sales"||word=="Customers").map(feature=>{
       (feature,test.filter( test(feature).isNull).count())
-    })
-    nullFeatures.foreach(println(_))
+    }).foreach(println(_))
+
+
     //Date,StateHoliday,StoreType,Assortment,PromoInterval
     (train, test, features, featuresNonNumeric)
   }
