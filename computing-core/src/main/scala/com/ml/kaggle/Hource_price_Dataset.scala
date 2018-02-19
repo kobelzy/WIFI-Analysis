@@ -227,7 +227,6 @@ object Hource_price_Dataset {
       pipelineStages += indexer
     })
   }
-
   /**
     * 返回指定DF中指定列的平均值，
     *
@@ -250,6 +249,7 @@ object Hource_price_Dataset {
       val colCount = colDS.filter(colDS(name).isNotNull).count()
       val mean = colDS.reduce(_ + _) / colCount
       map += (name -> mean.toInt)
+
     })
     map.toMap
 

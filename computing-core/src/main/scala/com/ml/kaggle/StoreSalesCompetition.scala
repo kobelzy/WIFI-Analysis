@@ -1,7 +1,7 @@
 package com.ml.kaggle
 
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.ml.feature.{MinMaxScaler, OneHotEncoder, StringIndexer}
+import org.apache.spark.ml.feature._
 import org.apache.spark.ml.{Pipeline, PipelineStage, linalg}
 import org.apache.spark.sql.functions.monotonically_increasing_id
 import org.apache.spark.sql.types.{IntegerType, LongType, StringType}
@@ -25,6 +25,7 @@ object StoreSalesCompetition {
     val myid = "Id"
     val plot = true
     val path = "F:\\BaiduYunDownload\\Kaggle课程(关注公众号菜鸟要飞，免费领取200G+教程)\\Kaggle实战班(关注公众号菜鸟要飞，免费领取200G+教程)\\七月kaggle(关注公众号菜鸟要飞，免费领取200G+教程)\\代码(关注公众号菜鸟要飞，免费领取200G+教程)\\lecture07_销量预估\\data"
+val v=linalg.Vectors.sparse(10,Array((1,1.0)))
 
     val (train, test, features, featuresNonNumeric) = loadData(spark, path)
     train.show(10, false)
@@ -40,7 +41,7 @@ object StoreSalesCompetition {
     features.filterNot(word => word == "Sales" || word == "Customers").map(feature => {
       (feature, testByFill.filter(testByFill(feature).isNull).count())
     }).foreach(println(_))
-
+   val pipeline:Pipeline= featureEngineering(spark,train)
 
   }
 
@@ -154,8 +155,8 @@ object StoreSalesCompetition {
       .join(promosDS, Array("Id"), "left")
   }
 
-  def featureEngineering(spark: SparkSession, data: DataFrame) = {
-    val pipline = new Pipeline()
+  def featureEngineering(spark: SparkSession, data: DataFrame): Pipeline = {
+    val pipeline = new Pipeline()
     val stages = ArrayBuffer[PipelineStage]()
     val categoryFeatures = Array("DayOfWeek", "month", "year", "day", "Open", "Promo", "StateHoliday",
       "SchoolHoliday", "StoreType", "Assortment", "CompetitionOpenSinceMonth", "CompetitionOpenSinceYear",
@@ -166,7 +167,16 @@ object StoreSalesCompetition {
     FE_OneHot(stages, categoryFeatures.map(_ + "_indexer"))
 
     val numericFeatures = Array("CompetitionDistance")
+    FE_StandarScaler(stages,numericFeatures)
     val targetFeatures = Array("Sales", "Customers")
+
+    val vectorFeatures: Array[String] =categoryFeatures.map(_+"onehot") ++ numericFeatures.map(_+"_scaler") :+ "promos"
+    val vectorAssembler=new VectorAssembler().setOutputCol("features")
+      .setInputCols(vectorFeatures)
+    stages+=vectorAssembler
+    pipeline.setStages(stages.toArray)
+    pipeline
+
   }
 
   def FE_StringIndexer(stages: ArrayBuffer[PipelineStage], features: Array[String]) = {
@@ -176,7 +186,6 @@ object StoreSalesCompetition {
       stages += stringIndexer
     })
   }
-
   def FE_OneHot(stages: ArrayBuffer[PipelineStage], features: Array[String]) = {
     features.foreach(feature => {
       val onehotEncoder = new OneHotEncoder()
@@ -186,12 +195,11 @@ object StoreSalesCompetition {
     })
   }
 
-  def FE_MaxMinScaler(stages: ArrayBuffer[PipelineStage], features: Array[String]) = {
+  def FE_StandarScaler(stages: ArrayBuffer[PipelineStage], features: Array[String]) = {
     features.foreach(feature => {
-      val onehotEncoder = new MinMaxScaler()
+      val standarScaler=new StandardScaler()
         .setInputCol(feature).setOutputCol(feature + "_scaler")
-
-      stages += onehotEncoder
+      stages += standarScaler
     })
   }
 }
