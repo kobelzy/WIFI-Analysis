@@ -1,13 +1,13 @@
 package com.ml.kaggle
 
-import java.sql.Timestamp
-
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.ml
-import org.apache.spark.ml.{feature, linalg}
-import org.apache.spark.sql.types.{IntegerType, LongType, StringType}
-import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
+import org.apache.spark.ml.feature.{MinMaxScaler, OneHotEncoder, StringIndexer}
+import org.apache.spark.ml.{Pipeline, PipelineStage, linalg}
 import org.apache.spark.sql.functions.monotonically_increasing_id
+import org.apache.spark.sql.types.{IntegerType, LongType, StringType}
+import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
+
+import scala.collection.mutable.ArrayBuffer
 
 /**
   * Created by Administrator on 2018/2/14.
@@ -27,17 +27,18 @@ object StoreSalesCompetition {
     val path = "F:\\BaiduYunDownload\\Kaggle课程(关注公众号菜鸟要飞，免费领取200G+教程)\\Kaggle实战班(关注公众号菜鸟要飞，免费领取200G+教程)\\七月kaggle(关注公众号菜鸟要飞，免费领取200G+教程)\\代码(关注公众号菜鸟要飞，免费领取200G+教程)\\lecture07_销量预估\\data"
 
     val (train, test, features, featuresNonNumeric) = loadData(spark, path)
-    train.show(10,false)
+    train.show(10, false)
 
-   val (trainByFill,testByFill)= processData(spark, train, test, features, featuresNonNumeric)
-    println("train_long:"+trainByFill.count())
-    println("trainDF_long:"+testByFill.count())
-    features.filterNot(_=="Id").map(feature=>{
-      (feature,trainByFill.filter( trainByFill(feature).isNull).count())
+    val (trainByFill, testByFill) = processData(spark, train, test, features, featuresNonNumeric)
+    Logger.getLogger("org.apache").trace("train_Count:" + trainByFill.count())
+    println("train_long:" + trainByFill.count())
+    println("test_long:" + testByFill.count())
+    features.filterNot(_ == "Id").map(feature => {
+      (feature, trainByFill.filter(trainByFill(feature).isNull).count())
     }).foreach(println(_))
 
-    features.filterNot(word=>word=="Sales"||word=="Customers").map(feature=>{
-      (feature,testByFill.filter( testByFill(feature).isNull).count())
+    features.filterNot(word => word == "Sales" || word == "Customers").map(feature => {
+      (feature, testByFill.filter(testByFill(feature).isNull).count())
     }).foreach(println(_))
 
 
@@ -62,7 +63,7 @@ object StoreSalesCompetition {
       .withColumn("SchoolHoliday", $"SchoolHoliday".cast(StringType))
 
     //where build Join after,the Store will display two
-    val train = train_org.join(store, Array("Store"), "left").withColumn("Id",monotonically_increasing_id())
+    val train = train_org.join(store, Array("Store"), "left").withColumn("Id", monotonically_increasing_id())
 
     val test_org: DataFrame = read.csv(path + "\\test.csv")
       .withColumn("StateHoliday", $"StateHoliday".cast(StringType))
@@ -78,8 +79,6 @@ object StoreSalesCompetition {
     val featuresNonNumeric = features.filterNot(line => featuresNumeric.contains(line))
 
 
-
-
     //Date,StateHoliday,StoreType,Assortment,PromoInterval
     (train, test, features, featuresNonNumeric)
   }
@@ -90,27 +89,29 @@ object StoreSalesCompetition {
 
   def processData(spark: SparkSession, train: DataFrame, test: DataFrame, features: Array[String], featuresNonNumeric: Array[String]) = {
     val trainCleanSales = train.filter(train("Sales") > 0)
+
     //year month day process,promo interval
     val trainDF = processDateAndpromos(spark, trainCleanSales)
-
+    println("train_long:" + trainCleanSales.count())
+    println("trainDF_long:" + trainDF.count())
 
     val testDF = processDateAndpromos(spark, test)
     //Features set
-    val noisyFeatures=Array("Id","Date")
-   val features_drop_noisy= features.filterNot(noisyFeatures.contains(_))
-    val featuresNonNumeric_drop_noisy=featuresNonNumeric.filterNot(noisyFeatures.contains(_))
-    val fillMap=Map[String,Any]("Open"->"1",
-      "CompetitionDistance"->0,
-    "CompetitionOpenSinceMonth"->"0",
-      "CompetitionOpenSinceYear"->"0",
-      "Promo2SinceWeek"->"0",
-      "Promo2SinceYear"->"0"
+    val noisyFeatures = Array("Id", "Date")
+    val features_drop_noisy = features.filterNot(noisyFeatures.contains(_))
+    val featuresNonNumeric_drop_noisy = featuresNonNumeric.filterNot(noisyFeatures.contains(_))
+    val fillMap = Map[String, Any]("Open" -> "1",
+      "CompetitionDistance" -> 0,
+      "CompetitionOpenSinceMonth" -> "0",
+      "CompetitionOpenSinceYear" -> "0",
+      "Promo2SinceWeek" -> "0",
+      "Promo2SinceYear" -> "0"
     )
-    val trainByFill=trainDF.na.fill(fillMap)
-    val testByFill=testDF.na.fill(fillMap)
-    trainByFill.show(10,false)
-    testByFill.show(10,truncate = false)
-    (trainByFill,testByFill)
+    val trainByFill = trainDF.na.fill(fillMap)
+    val testByFill = testDF.na.fill(fillMap)
+    trainByFill.show(10, false)
+    testByFill.show(10, truncate = false)
+    (trainByFill, testByFill)
   }
 
   /**
@@ -122,7 +123,7 @@ object StoreSalesCompetition {
     import spark.implicits._
     val store2DateDS: Dataset[store2DateCase] = data.select($"Id".as[Long], $"Date".as[String]).map { case (id, date) => {
 
-val splites= date.split(" ")(0).split("-")
+      val splites = date.split(" ")(0).split("-")
       val year = splites(0)
       val month = splites(1)
       val day = splites(2)
@@ -145,7 +146,7 @@ val splites= date.split(" ")(0).split("-")
           })
           store2VectorCase(line._1, linalg.Vectors.sparse(12, promos))
         } else {
-          store2VectorCase(line._1,linalg.Vectors.dense(new Array[Double](12)))
+          store2VectorCase(line._1, linalg.Vectors.dense(new Array[Double](12)))
         }
       })
     data
@@ -153,6 +154,46 @@ val splites= date.split(" ")(0).split("-")
       .join(promosDS, Array("Id"), "left")
   }
 
+  def featureEngineering(spark: SparkSession, data: DataFrame) = {
+    val pipline = new Pipeline()
+    val stages = ArrayBuffer[PipelineStage]()
+    val categoryFeatures = Array("DayOfWeek", "month", "year", "day", "Open", "Promo", "StateHoliday",
+      "SchoolHoliday", "StoreType", "Assortment", "CompetitionOpenSinceMonth", "CompetitionOpenSinceYear",
+      "Promo2", "Promo2SinceWeek", "Promo2SinceYear")
+    //StringIndexer
+    FE_StringIndexer(stages, categoryFeatures)
+    //OneHot
+    FE_OneHot(stages, categoryFeatures.map(_ + "_indexer"))
+
+    val numericFeatures = Array("CompetitionDistance")
+    val targetFeatures = Array("Sales", "Customers")
+  }
+
+  def FE_StringIndexer(stages: ArrayBuffer[PipelineStage], features: Array[String]) = {
+    features.foreach(feature => {
+      val stringIndexer = new StringIndexer()
+        .setInputCol(feature).setOutputCol(feature + "_indexer")
+      stages += stringIndexer
+    })
+  }
+
+  def FE_OneHot(stages: ArrayBuffer[PipelineStage], features: Array[String]) = {
+    features.foreach(feature => {
+      val onehotEncoder = new OneHotEncoder()
+        .setInputCol(feature).setOutputCol(feature + "_onehot")
+        .setDropLast(false)
+      stages += onehotEncoder
+    })
+  }
+
+  def FE_MaxMinScaler(stages: ArrayBuffer[PipelineStage], features: Array[String]) = {
+    features.foreach(feature => {
+      val onehotEncoder = new MinMaxScaler()
+        .setInputCol(feature).setOutputCol(feature + "_scaler")
+
+      stages += onehotEncoder
+    })
+  }
 }
 
 
@@ -169,8 +210,8 @@ val splites= date.split(" ")(0).split("-")
  |-- StoreType: string (nullable = true)
  |-- Assortment: string (nullable = true)
  |-- CompetitionDistance: integer (nullable = true)
- |-- CompetitionOpenSinceMonth: integer (nullable = true)
- |-- CompetitionOpenSinceYear: integer (nullable = true)
+ |-- CompetitionOpenSinceMonth: string (nullable = true)
+ |-- CompetitionOpenSinceYear: string (nullable = true)
  |-- Promo2: string (nullable = true)
  |-- Promo2SinceWeek: integer (nullable = true)
  |-- Promo2SinceYear: integer (nullable = true)
