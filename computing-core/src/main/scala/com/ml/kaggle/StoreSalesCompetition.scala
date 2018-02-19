@@ -28,7 +28,10 @@ object StoreSalesCompetition {
 
     val (train, test, features, featuresNonNumeric) = loadData(spark, path)
     train.show(10,false)
+
    val (trainByFill,testByFill)= processData(spark, train, test, features, featuresNonNumeric)
+    println("train_long:"+trainByFill.count())
+    println("trainDF_long:"+testByFill.count())
     features.filterNot(_=="Id").map(feature=>{
       (feature,trainByFill.filter( trainByFill(feature).isNull).count())
     }).foreach(println(_))
@@ -89,8 +92,7 @@ object StoreSalesCompetition {
     val trainCleanSales = train.filter(train("Sales") > 0)
     //year month day process,promo interval
     val trainDF = processDateAndpromos(spark, trainCleanSales)
-    println("train_long:"+trainCleanSales.count())
-    println("trainDF_long:"+trainDF.count())
+
 
     val testDF = processDateAndpromos(spark, test)
     //Features set
