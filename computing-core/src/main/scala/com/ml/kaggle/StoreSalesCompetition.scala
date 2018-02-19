@@ -1,10 +1,13 @@
 package com.ml.kaggle
 
+import java.sql.Timestamp
+
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml
 import org.apache.spark.ml.{feature, linalg}
-import org.apache.spark.sql.types.{IntegerType, StringType}
-import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
+import org.apache.spark.sql.types.{IntegerType, LongType, StringType}
+import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
+import org.apache.spark.sql.functions.monotonically_increasing_id
 
 /**
   * Created by Administrator on 2018/2/14.
@@ -24,12 +27,16 @@ object StoreSalesCompetition {
     val path = "F:\\BaiduYunDownload\\Kaggle课程(关注公众号菜鸟要飞，免费领取200G+教程)\\Kaggle实战班(关注公众号菜鸟要飞，免费领取200G+教程)\\七月kaggle(关注公众号菜鸟要飞，免费领取200G+教程)\\代码(关注公众号菜鸟要飞，免费领取200G+教程)\\lecture07_销量预估\\data"
 
     val (train, test, features, featuresNonNumeric) = loadData(spark, path)
-    processData(spark, train, test, features, featuresNonNumeric)
+    train.show(10,false)
+   val (trainByFill,testByFill)= processData(spark, train, test, features, featuresNonNumeric)
+    features.filterNot(_=="Id").map(feature=>{
+      (feature,trainByFill.filter( trainByFill(feature).isNull).count())
+    }).foreach(println(_))
 
+    features.filterNot(word=>word=="Sales"||word=="Customers").map(feature=>{
+      (feature,testByFill.filter( testByFill(feature).isNull).count())
+    }).foreach(println(_))
 
-    println(features.mkString(","))
-    println("Non")
-    println(featuresNonNumeric.mkString(","))
 
   }
 
@@ -52,49 +59,56 @@ object StoreSalesCompetition {
       .withColumn("SchoolHoliday", $"SchoolHoliday".cast(StringType))
 
     //where build Join after,the Store will display two
-    val train = train_org.join(store, Array("Store"), "left")
+    val train = train_org.join(store, Array("Store"), "left").withColumn("Id",monotonically_increasing_id())
 
-    train.printSchema()
     val test_org: DataFrame = read.csv(path + "\\test.csv")
       .withColumn("StateHoliday", $"StateHoliday".cast(StringType))
       .withColumn("DayOfWeek", $"DayOfWeek".cast(StringType))
       .withColumn("Open", $"Open".cast(StringType))
       .withColumn("Promo", $"Promo".cast(StringType))
       .withColumn("SchoolHoliday", $"SchoolHoliday".cast(StringType))
+      .withColumn("Id", $"Id".cast(LongType))
     //    val test: DataFrame =test_org.join(store,test_org("Store")===store("Store"),"left")
     val test: DataFrame = test_org.join(store, Seq("Store"), "left")
     val features: Array[String] = train.columns
     val featuresNumeric: Seq[String] = test.schema.filter(line => line.dataType == IntegerType).map(_.name)
     val featuresNonNumeric = features.filterNot(line => featuresNumeric.contains(line))
 
-    features.filterNot(_=="Id").map(feature=>{
-      (feature,train.filter( train(feature).isNull).count())
-    }).foreach(println(_))
 
-    features.filterNot(word=>word=="Sales"||word=="Customers").map(feature=>{
-      (feature,test.filter( test(feature).isNull).count())
-    }).foreach(println(_))
 
 
     //Date,StateHoliday,StoreType,Assortment,PromoInterval
     (train, test, features, featuresNonNumeric)
   }
 
-  case class store2VectorCase(Store: Int, promos: linalg.Vector)
+  case class store2VectorCase(Id: Long, promos: linalg.Vector)
 
-  case class store2DateCase(Store: Int, year: Double, month: Double, day: Double)
+  case class store2DateCase(Id: Long, year: String, month: String, day: String)
 
   def processData(spark: SparkSession, train: DataFrame, test: DataFrame, features: Array[String], featuresNonNumeric: Array[String]) = {
     val trainCleanSales = train.filter(train("Sales") > 0)
     //year month day process,promo interval
     val trainDF = processDateAndpromos(spark, trainCleanSales)
+    println("train_long:"+trainCleanSales.count())
+    println("trainDF_long:"+trainDF.count())
+
     val testDF = processDateAndpromos(spark, test)
     //Features set
     val noisyFeatures=Array("Id","Date")
    val features_drop_noisy= features.filterNot(noisyFeatures.contains(_))
     val featuresNonNumeric_drop_noisy=featuresNonNumeric.filterNot(noisyFeatures.contains(_))
-    val fillMap=scala.collection.mutable.Map[String,Any]()
-    fillMap+=("Open"->1)
+    val fillMap=Map[String,Any]("Open"->"1",
+      "CompetitionDistance"->0,
+    "CompetitionOpenSinceMonth"->"0",
+      "CompetitionOpenSinceYear"->"0",
+      "Promo2SinceWeek"->"0",
+      "Promo2SinceYear"->"0"
+    )
+    val trainByFill=trainDF.na.fill(fillMap)
+    val testByFill=testDF.na.fill(fillMap)
+    trainByFill.show(10,false)
+    testByFill.show(10,truncate = false)
+    (trainByFill,testByFill)
   }
 
   /**
@@ -104,18 +118,19 @@ object StoreSalesCompetition {
     */
   def processDateAndpromos(spark: SparkSession, data: DataFrame): DataFrame = {
     import spark.implicits._
-    val store2DateDS: Dataset[store2DateCase] = data.select($"Store".as[Int], $"Date".as[String]).map { case (store, date) => {
-      val year = date.split(" ")(0).split("-")(0).toDouble
-      val month = date.split(" ")(0).split("-")(1).toDouble
-      val day = date.split(" ")(0).split("-")(2).toDouble
-      store2DateCase(store, year, month, day)
-    }
-    }
+    val store2DateDS: Dataset[store2DateCase] = data.select($"Id".as[Long], $"Date".as[String]).map { case (id, date) => {
 
+val splites= date.split(" ")(0).split("-")
+      val year = splites(0)
+      val month = splites(1)
+      val day = splites(2)
+      store2DateCase(id, year, month, day)
+    }
+    }
     //January,February,March,April,May,June,July,August,September,October,November,December
     //Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sept,Oct,Nov,Dec
     val months = Array("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec")
-    val promosDS = data.select($"Store".as[Int], $"PromoInterval".as[String])
+    val promosDS = data.select($"Id".as[Long], $"PromoInterval".as[String])
       .map(line => {
         val intervalsStr: String = line._2
         if (intervalsStr != null) {
@@ -128,10 +143,12 @@ object StoreSalesCompetition {
           })
           store2VectorCase(line._1, linalg.Vectors.sparse(12, promos))
         } else {
-          store2VectorCase(line._1, null)
+          store2VectorCase(line._1,linalg.Vectors.dense(new Array[Double](12)))
         }
       })
-    data.join(store2DateDS, Array("Store"), "left").join(promosDS, Array("Store"), "left")
+    data
+      .join(store2DateDS, Array("Id"), "left")
+      .join(promosDS, Array("Id"), "left")
   }
 
 }
