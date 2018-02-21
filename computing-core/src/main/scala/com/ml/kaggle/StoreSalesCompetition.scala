@@ -3,7 +3,7 @@ package com.ml.kaggle
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.{Pipeline, PipelineStage, linalg}
-import org.apache.spark.sql.functions.monotonically_increasing_id
+import org.apache.spark.sql.functions.{monotonically_increasing_id, udf}
 import org.apache.spark.sql.types.{IntegerType, LongType, StringType}
 import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
 
@@ -134,6 +134,9 @@ val v=linalg.Vectors.sparse(10,Array((1,1.0)))
     //January,February,March,April,May,June,July,August,September,October,November,December
     //Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sept,Oct,Nov,Dec
     val months = Array("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec")
+
+       val transformUDF=udf(transformFun,StringType)
+//       val transformUDF=udf(transformFun,linalg.Vectors)
     val promosDS = data.select($"Id".as[Long], $"PromoInterval".as[String])
       .map(line => {
         val intervalsStr: String = line._2
@@ -154,6 +157,23 @@ val v=linalg.Vectors.sparse(10,Array((1,1.0)))
       .join(store2DateDS, Array("Id"), "left")
       .join(promosDS, Array("Id"), "left")
   }
+
+    def transformFun:String=>String={      intervalsStr => {
+      if (intervalsStr != null) {
+        val intervals = intervalsStr.split(",")
+        //      val promos=new Array[Int](12)
+        val promos = scala.collection.mutable.ArrayBuffer[(Int, Double)]()
+        intervals.foreach(month => {
+          val index = months.indexOf(month)
+          promos += Tuple2(index, 1.0)
+        })
+        linalg.Vectors.sparse(12, promos)
+      } else {
+        linalg.Vectors.dense(new Array[Double](12))
+      }
+      "isd"
+    }
+
 
   def featureEngineering(spark: SparkSession, data: DataFrame): Pipeline = {
     val pipeline = new Pipeline()
