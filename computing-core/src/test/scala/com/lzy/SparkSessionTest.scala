@@ -6,7 +6,7 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkException
 import org.apache.spark.annotation.Since
 import org.apache.spark.ml.attribute._
-import org.apache.spark.ml.feature.Tokenizer
+import org.apache.spark.ml.feature.{IndexToString, StringIndexer, Tokenizer}
 import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.sql._
 import org.apache.spark.sql.expressions.UserDefinedFunction
@@ -35,24 +35,33 @@ object SparkSessionTest {
     import org.apache.spark.sql.functions.monotonically_increasing_id
 
     val data3 = data1.withColumn("idExtend", monotonically_increasing_id())
-      .withColumn("idExtend", $"idExtend".cast(IntegerType))
+//      .withColumn("idExtend", $"idExtend".cast(IntegerType))
 //      .withColumn("age", $"age".cast(LongType))
     data3.show(false)
     data3.printSchema()
 
     val data5:Dataset[Long]=data3.select($"age".as[Long])
     data5.printSchema()
-   val to= new Tokenizer()
-    to.transform(data3)
+//    val inputCol:StructField=data5.schema("name")
+
+//   val to= new Tokenizer()
+//    to.transform(data3)
     println("jianzheni ")
     //    implicit val encoder=org.apache.spark.sql.Encoders.scalaLong
 //        val data4=data1.select(col("*"),data3.col("idExtend"))
 //        val data4=data1.withColumn("newName", data3.col("ids"))
-    val data4 = data1.withColumnRenamed("id","idExtend").withColumn("newID", data3.col("idExtend"))
+    val outputCol="newID"
+    val schema=data1.schema
+val outputFields = schema.fields :+
+  StructField(outputCol, LongType, nullable = false)
+    StructType(outputFields)
+    val data4 = data1.withColumn(outputCol, data3.col("idExtend"))
     data4.show(false)
-//val data6=data1.withColumn("newName2",data4.col("newName"))
-//data6.show(false)
-   val outputAttrs:BinaryAttribute= BinaryAttribute.defaultAttr.withName("newName")
+//    new IndexToString().transform(data1)
+//    new org.apache.spark.ml.feature.Normalizer().transform(data5)
+////val data6=data1.withColumn("newName2",data4.col("newName"))
+////data6.show(false)
+//   val outputAttrs:BinaryAttribute= BinaryAttribute.defaultAttr.withName("newName")
 //    val outputAttrGroup= AttributeGroup("newName",outputAttrs)
 
 //    val outputAttrs: Array[Attribute] =
