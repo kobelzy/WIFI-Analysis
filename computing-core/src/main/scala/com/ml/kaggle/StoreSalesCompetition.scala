@@ -135,7 +135,7 @@ val v=linalg.Vectors.sparse(10,Array((1,1.0)))
     //Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sept,Oct,Nov,Dec
     val months = Array("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec")
 
-       val transformUDF=udf(transformFun,StringType)
+//       val transformUDF=udf(transformFun,StringType)
 //       val transformUDF=udf(transformFun,linalg.Vectors)
     val promosDS = data.select($"Id".as[Long], $"PromoInterval".as[String])
       .map(line => {
@@ -158,7 +158,8 @@ val v=linalg.Vectors.sparse(10,Array((1,1.0)))
       .join(promosDS, Array("Id"), "left")
   }
 
-    def transformFun:String=>String={      intervalsStr => {
+    def transformFun:String=>String= { intervalsStr => {
+      val months = Array("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec")
       if (intervalsStr != null) {
         val intervals = intervalsStr.split(",")
         //      val promos=new Array[Int](12)
@@ -173,7 +174,7 @@ val v=linalg.Vectors.sparse(10,Array((1,1.0)))
       }
       "isd"
     }
-
+    }
 
   def featureEngineering(spark: SparkSession, data: DataFrame): Pipeline = {
     val pipeline = new Pipeline()
