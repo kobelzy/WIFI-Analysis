@@ -7,6 +7,7 @@ import org.apache.spark.SparkException
 import org.apache.spark.annotation.Since
 import org.apache.spark.ml.attribute._
 import org.apache.spark.ml.feature.{IndexToString, StringIndexer, Tokenizer}
+import org.apache.spark.ml.linalg
 import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.sql._
 import org.apache.spark.sql.expressions.UserDefinedFunction
@@ -55,8 +56,15 @@ object SparkSessionTest {
 val outputFields = schema.fields :+
   StructField(outputCol, LongType, nullable = false)
     StructType(outputFields)
-    val data4 = data1.withColumn(outputCol, data3.col("idExtend"))
-    data4.show(false)
+//    val data4 = data1.withColumn(outputCol, data3.col("idExtend"))
+//    data4.show(false)
+
+    val transformUDF=udf(transformFunc)
+//    val newDS=data1.withColumn("newName",transformUDF(data1("name")))
+    val newDS=data1.select(col("*"),transformUDF(data1("name")).as("newName"),transformUDF(data1("name")).as("newName2"))
+    newDS.show(false)
+    newDS.printSchema()
+
 //    new IndexToString().transform(data1)
 //    new org.apache.spark.ml.feature.Normalizer().transform(data5)
 ////val data6=data1.withColumn("newName2",data4.col("newName"))
@@ -73,6 +81,7 @@ val outputFields = schema.fields :+
 
 
   }
+  def transformFunc:String=>linalg.Vector ={line=>{    Vectors.dense(0,0,1,0)  }  }
 //  @Since("2.0.0")
 //  override def transform(dataset: Dataset[_], inputCol: String, outputCol: String, dropLast: Boolean): DataFrame = {
 //    transformSchema(dataset.schema, logging = true)
