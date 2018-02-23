@@ -3,9 +3,9 @@ package com.ml.kaggle
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.{Pipeline, PipelineStage, linalg}
-import org.apache.spark.sql.functions.{monotonically_increasing_id, udf}
+import org.apache.spark.sql.functions.{col, monotonically_increasing_id, udf}
 import org.apache.spark.sql.types.{IntegerType, LongType, StringType}
-import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -25,24 +25,25 @@ object StoreSalesCompetition {
     val myid = "Id"
     val plot = true
     val path = "F:\\BaiduYunDownload\\Kaggle课程(关注公众号菜鸟要飞，免费领取200G+教程)\\Kaggle实战班(关注公众号菜鸟要飞，免费领取200G+教程)\\七月kaggle(关注公众号菜鸟要飞，免费领取200G+教程)\\代码(关注公众号菜鸟要飞，免费领取200G+教程)\\lecture07_销量预估\\data"
-val v=linalg.Vectors.sparse(10,Array((1,1.0)))
+    val v = linalg.Vectors.sparse(10, Array((1, 1.0)))
 
     val (train, test, features, featuresNonNumeric) = loadData(spark, path)
     train.show(10, false)
 
     val (trainByFill, testByFill) = processData(spark, train, test, features, featuresNonNumeric)
-    Logger.getLogger("org.apache").trace("train_Count:" + trainByFill.count())
+    Logger.getLogger("org.apache").warn("train_Count:" + trainByFill.count())
     println("train_long:" + trainByFill.count())
     println("test_long:" + testByFill.count())
-    features.filterNot(_ == "Id").map(feature => {
-      (feature, trainByFill.filter(trainByFill(feature).isNull).count())
-    }).foreach(println(_))
-
-    features.filterNot(word => word == "Sales" || word == "Customers").map(feature => {
-      (feature, testByFill.filter(testByFill(feature).isNull).count())
-    }).foreach(println(_))
-   val pipeline:Pipeline= featureEngineering(spark,train)
-
+    //    features.filterNot(_ == "Id").map(feature => {
+    //      (feature, trainByFill.filter(trainByFill(feature).isNull).count())
+    //    }).foreach(println(_))
+    //
+    //    features.filterNot(word => word == "Sales" || word == "Customers").map(feature => {
+    //      (feature, testByFill.filter(testByFill(feature).isNull).count())
+    //    }).foreach(println(_))
+    val pipeline: Pipeline = featureEngineering(spark, train)
+    val model=pipeline.fit(trainByFill)
+      model.transform(trainByFill).show(10, false)
   }
 
   def loadData(spark: SparkSession, path: String): (DataFrame, DataFrame, Array[String], Array[String]) = {
@@ -92,15 +93,16 @@ val v=linalg.Vectors.sparse(10,Array((1,1.0)))
     val trainCleanSales = train.filter(train("Sales") > 0)
 
     //year month day process,promo interval
-    val trainDF = processDateAndpromos(spark, trainCleanSales)
+    val trainDF = processDateAndpromos(trainCleanSales)
     println("train_long:" + trainCleanSales.count())
     println("trainDF_long:" + trainDF.count())
-
-    val testDF = processDateAndpromos(spark, test)
+    trainDF.printSchema()
+    trainDF.show(10, false)
+    val testDF = processDateAndpromos(test)
     //Features set
-    val noisyFeatures = Array("Id", "Date")
-    val features_drop_noisy = features.filterNot(noisyFeatures.contains(_))
-    val featuresNonNumeric_drop_noisy = featuresNonNumeric.filterNot(noisyFeatures.contains(_))
+    //    val noisyFeatures = Array("Id", "Date")
+    //    val features_drop_noisy = features.filterNot(noisyFeatures.contains(_))
+    //    val featuresNonNumeric_drop_noisy = featuresNonNumeric.filterNot(noisyFeatures.contains(_))
     val fillMap = Map[String, Any]("Open" -> "1",
       "CompetitionDistance" -> 0,
       "CompetitionOpenSinceMonth" -> "0",
@@ -117,48 +119,15 @@ val v=linalg.Vectors.sparse(10,Array((1,1.0)))
 
   /**
     *
-    * @param spark
     * @param data
     */
-  def processDateAndpromos(spark: SparkSession, data: DataFrame): DataFrame = {
-    import spark.implicits._
-    val store2DateDS: Dataset[store2DateCase] = data.select($"Id".as[Long], $"Date".as[String]).map { case (id, date) => {
-
-      val splites = date.split(" ")(0).split("-")
-      val year = splites(0)
-      val month = splites(1)
-      val day = splites(2)
-      store2DateCase(id, year, month, day)
-    }
-    }
+  def processDateAndpromos(data: DataFrame): DataFrame = {
+    val yearTransformUDF = udf { date: String => date.split(" ")(0).split("-")(0) }
+    val monthTransformUDF = udf { date: String => date.split(" ")(0).split("-")(1) }
+    val dayTransformUDF = udf { date: String => date.split(" ")(0).split("-")(2) }
     //January,February,March,April,May,June,July,August,September,October,November,December
     //Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sept,Oct,Nov,Dec
-    val months = Array("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec")
-
-//       val transformUDF=udf(transformFun,StringType)
-//       val transformUDF=udf(transformFun,linalg.Vectors)
-    val promosDS = data.select($"Id".as[Long], $"PromoInterval".as[String])
-      .map(line => {
-        val intervalsStr: String = line._2
-        if (intervalsStr != null) {
-          val intervals = intervalsStr.split(",")
-          //      val promos=new Array[Int](12)
-          val promos = scala.collection.mutable.ArrayBuffer[(Int, Double)]()
-          intervals.foreach(month => {
-            val index = months.indexOf(month)
-            promos += Tuple2(index, 1.0)
-          })
-          store2VectorCase(line._1, linalg.Vectors.sparse(12, promos))
-        } else {
-          store2VectorCase(line._1, linalg.Vectors.dense(new Array[Double](12)))
-        }
-      })
-    data
-      .join(store2DateDS, Array("Id"), "left")
-      .join(promosDS, Array("Id"), "left")
-  }
-
-    def transformFun:String=>String= { intervalsStr => {
+    val promosTransformUDF = udf { intervalsStr: String => {
       val months = Array("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec")
       if (intervalsStr != null) {
         val intervals = intervalsStr.split(",")
@@ -170,16 +139,23 @@ val v=linalg.Vectors.sparse(10,Array((1,1.0)))
         })
         linalg.Vectors.sparse(12, promos)
       } else {
-        linalg.Vectors.dense(new Array[Double](12))
+        linalg.Vectors.sparse(12, Array[Int](), Array[Double]())
       }
-      "isd"
     }
     }
+    val promosDS2 = data.withColumn("Promo", promosTransformUDF(data("PromoInterval")))
+    data.select(col("*"),
+      yearTransformUDF(data("Date").cast(StringType)).as("Year"),
+      monthTransformUDF(data("Date").cast(StringType)).as("Month"),
+      dayTransformUDF(data("Date").cast(StringType)).as("Day"),
+      promosTransformUDF(data("PromoInterval")).as("Promos"))
+  }
+
 
   def featureEngineering(spark: SparkSession, data: DataFrame): Pipeline = {
     val pipeline = new Pipeline()
     val stages = ArrayBuffer[PipelineStage]()
-    val categoryFeatures = Array("DayOfWeek", "month", "year", "day", "Open", "Promo", "StateHoliday",
+    val categoryFeatures = Array("DayOfWeek", "Year", "Month", "Day", "Open", "Promo", "StateHoliday",
       "SchoolHoliday", "StoreType", "Assortment", "CompetitionOpenSinceMonth", "CompetitionOpenSinceYear",
       "Promo2", "Promo2SinceWeek", "Promo2SinceYear")
     //StringIndexer
@@ -188,13 +164,13 @@ val v=linalg.Vectors.sparse(10,Array((1,1.0)))
     FE_OneHot(stages, categoryFeatures.map(_ + "_indexer"))
 
     val numericFeatures = Array("CompetitionDistance")
-    FE_StandarScaler(stages,numericFeatures)
+    FE_StandarScaler(stages, numericFeatures)
     val targetFeatures = Array("Sales", "Customers")
 
-    val vectorFeatures: Array[String] =categoryFeatures.map(_+"onehot") ++ numericFeatures.map(_+"_scaler") :+ "promos"
-    val vectorAssembler=new VectorAssembler().setOutputCol("features")
+    val vectorFeatures: Array[String] = categoryFeatures.map(_ + "onehot") ++ numericFeatures.map(_ + "_scaler") :+ "promos"
+    val vectorAssembler = new VectorAssembler().setOutputCol("features")
       .setInputCols(vectorFeatures)
-    stages+=vectorAssembler
+    stages += vectorAssembler
     pipeline.setStages(stages.toArray)
     pipeline
 
@@ -207,6 +183,7 @@ val v=linalg.Vectors.sparse(10,Array((1,1.0)))
       stages += stringIndexer
     })
   }
+
   def FE_OneHot(stages: ArrayBuffer[PipelineStage], features: Array[String]) = {
     features.foreach(feature => {
       val onehotEncoder = new OneHotEncoder()
@@ -218,7 +195,7 @@ val v=linalg.Vectors.sparse(10,Array((1,1.0)))
 
   def FE_StandarScaler(stages: ArrayBuffer[PipelineStage], features: Array[String]) = {
     features.foreach(feature => {
-      val standarScaler=new StandardScaler()
+      val standarScaler = new StandardScaler()
         .setInputCol(feature).setOutputCol(feature + "_scaler")
       stages += standarScaler
     })
