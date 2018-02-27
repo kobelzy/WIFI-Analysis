@@ -27,13 +27,12 @@ object StoreSalesCompetition {
     val path = "F:\\BaiduYunDownload\\Kaggle课程(关注公众号菜鸟要飞，免费领取200G+教程)\\Kaggle实战班(关注公众号菜鸟要飞，免费领取200G+教程)\\七月kaggle(关注公众号菜鸟要飞，免费领取200G+教程)\\代码(关注公众号菜鸟要飞，免费领取200G+教程)\\lecture07_销量预估\\data"
     val v = linalg.Vectors.sparse(10, Array((1, 1.0)))
 
-    val (train, test, features, featuresNonNumeric) = loadData(spark, path)
+    val (train, test) = loadData(spark, path)
     train.show(10, false)
 
-    val (trainByFill, testByFill) = processData(spark, train, test, features, featuresNonNumeric)
+    val (trainByFill, testByFill) = processData(spark, train, test)
     Logger.getLogger("org.apache").warn("train_Count:" + trainByFill.count())
-    println("train_long:" + trainByFill.count())
-    println("test_long:" + testByFill.count())
+    Logger.getLogger("org.apache").warn("train_Count:" + testByFill.count())
     //    features.filterNot(_ == "Id").map(feature => {
     //      (feature, trainByFill.filter(trainByFill(feature).isNull).count())
     //    }).foreach(println(_))
@@ -46,7 +45,7 @@ object StoreSalesCompetition {
     model.transform(trainByFill).show(10, false)
   }
 
-  def loadData(spark: SparkSession, path: String): (DataFrame, DataFrame, Array[String], Array[String]) = {
+  def loadData(spark: SparkSession, path: String): (DataFrame, DataFrame) = {
     import spark.implicits._
     val read = spark.read.option("header", "true").option("nullValue", "NA").option("inferSchema", "true")
 
@@ -84,20 +83,18 @@ object StoreSalesCompetition {
 
 
     //Date,StateHoliday,StoreType,Assortment,PromoInterval
-    (train, test, features, featuresNonNumeric)
+    (train, test)
   }
 
   case class store2VectorCase(Id: Long, promos: linalg.Vector)
 
   case class store2DateCase(Id: Long, year: String, month: String, day: String)
 
-  def processData(spark: SparkSession, train: DataFrame, test: DataFrame, features: Array[String], featuresNonNumeric: Array[String]) = {
+  def processData(spark: SparkSession, train: DataFrame, test: DataFrame) = {
     val trainCleanSales = train.filter(train("Sales") > 0)
 
     //year month day process,promo interval
     val trainDF = processDateAndpromos(trainCleanSales)
-    println("train_long:" + trainCleanSales.count())
-    println("trainDF_long:" + trainDF.count())
     trainDF.printSchema()
     trainDF.show(10, false)
     val testDF = processDateAndpromos(test)
@@ -114,8 +111,7 @@ object StoreSalesCompetition {
     )
     val trainByFill = trainDF.na.fill(fillMap)
     val testByFill = testDF.na.fill(fillMap)
-    trainByFill.show(10, truncate = false)
-    testByFill.show(10, truncate = false)
+
 
     val toVectorTransformUDF = udf { distance: Double => {
       linalg.Vectors.dense(distance)
@@ -123,6 +119,8 @@ object StoreSalesCompetition {
     }
     val trainByFillAndVectors=trainByFill.withColumn("CompetitionDistance",toVectorTransformUDF(col("CompetitionDistance")))
     val testByFillAndVectors=testByFill.withColumn("CompetitionDistance",toVectorTransformUDF(col("CompetitionDistance")))
+    trainByFillAndVectors.show(10, truncate = false)
+    testByFillAndVectors.show(10, truncate = false)
     (trainByFillAndVectors, testByFillAndVectors)
   }
 
@@ -180,7 +178,7 @@ object StoreSalesCompetition {
     FE_StandarScaler(stages, numericFeatures)
     val targetFeatures = Array("Sales", "Customers")
 
-    val vectorFeatures: Array[String] = categoryFeatures.map(_ + "onehot") ++ numericFeatures.map(_ + "_scaler") :+ "promos"
+    val vectorFeatures: Array[String] = categoryFeatures.map(_ + "_onehot") ++ numericFeatures.map(_ + "_scaler") :+ "promos"
     val vectorAssembler = new VectorAssembler().setOutputCol("features")
       .setInputCols(vectorFeatures)
     stages += vectorAssembler
