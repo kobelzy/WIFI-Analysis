@@ -112,7 +112,7 @@ object StoreSalesCompetition {
     )
     val trainByFill = trainDF.na.fill(fillMap)
     val testByFill = testDF.na.fill(fillMap)
-    trainByFill.show(10, false)
+    trainByFill.show(10, truncate = false)
     testByFill.show(10, truncate = false)
     (trainByFill, testByFill)
   }
