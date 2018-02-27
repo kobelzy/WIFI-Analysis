@@ -4,7 +4,7 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.{Pipeline, PipelineStage, linalg}
 import org.apache.spark.sql.functions.{col, monotonically_increasing_id, udf}
-import org.apache.spark.sql.types.{IntegerType, LongType, StringType}
+import org.apache.spark.sql.types.{DoubleType, IntegerType, LongType, StringType}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.mutable.ArrayBuffer
@@ -41,9 +41,9 @@ object StoreSalesCompetition {
     //    features.filterNot(word => word == "Sales" || word == "Customers").map(feature => {
     //      (feature, testByFill.filter(testByFill(feature).isNull).count())
     //    }).foreach(println(_))
-    val pipeline: Pipeline = featureEngineering(spark, train)
-    val model=pipeline.fit(trainByFill)
-      model.transform(trainByFill).show(10, false)
+    val pipeline: Pipeline = featureEngineering(spark)
+    val model = pipeline.fit(trainByFill)
+    model.transform(trainByFill).show(10, false)
   }
 
   def loadData(spark: SparkSession, path: String): (DataFrame, DataFrame, Array[String], Array[String]) = {
@@ -56,6 +56,7 @@ object StoreSalesCompetition {
       .withColumn("CompetitionOpenSinceYear", $"CompetitionOpenSinceYear".cast(StringType))
       .withColumn("Promo2SinceWeek", $"Promo2SinceWeek".cast(StringType))
       .withColumn("Promo2SinceYear", $"Promo2SinceYear".cast(StringType))
+      .withColumn("CompetitionDistance", $"CompetitionDistance".cast(DoubleType))
 
     val train_org = read.csv(path + "\\train.csv")
       .withColumn("StateHoliday", $"StateHoliday".cast(StringType))
@@ -74,6 +75,7 @@ object StoreSalesCompetition {
       .withColumn("Promo", $"Promo".cast(StringType))
       .withColumn("SchoolHoliday", $"SchoolHoliday".cast(StringType))
       .withColumn("Id", $"Id".cast(LongType))
+
     //    val test: DataFrame =test_org.join(store,test_org("Store")===store("Store"),"left")
     val test: DataFrame = test_org.join(store, Seq("Store"), "left")
     val features: Array[String] = train.columns
@@ -114,7 +116,14 @@ object StoreSalesCompetition {
     val testByFill = testDF.na.fill(fillMap)
     trainByFill.show(10, truncate = false)
     testByFill.show(10, truncate = false)
-    (trainByFill, testByFill)
+
+    val toVectorTransformUDF = udf { distance: Double => {
+      linalg.Vectors.dense(distance)
+    }
+    }
+    val trainByFillAndVectors=trainByFill.withColumn("CompetitionDistance",toVectorTransformUDF(col("CompetitionDistance")))
+    val testByFillAndVectors=testByFill.withColumn("CompetitionDistance",toVectorTransformUDF(col("CompetitionDistance")))
+    (trainByFillAndVectors, testByFillAndVectors)
   }
 
   /**
@@ -152,7 +161,11 @@ object StoreSalesCompetition {
   }
 
 
-  def featureEngineering(spark: SparkSession, data: DataFrame): Pipeline = {
+  def featureEngineering(spark: SparkSession): Pipeline = {
+    //只是修改其中的距离，将其转为向量
+
+
+
     val pipeline = new Pipeline()
     val stages = ArrayBuffer[PipelineStage]()
     val categoryFeatures = Array("DayOfWeek", "Year", "Month", "Day", "Open", "Promo", "StateHoliday",
@@ -195,7 +208,7 @@ object StoreSalesCompetition {
 
   def FE_StandarScaler(stages: ArrayBuffer[PipelineStage], features: Array[String]) = {
     features.foreach(feature => {
-      val standarScaler = new StandardScaler()
+      val standarScaler = new MinMaxScaler()
         .setInputCol(feature).setOutputCol(feature + "_scaler")
       stages += standarScaler
     })
