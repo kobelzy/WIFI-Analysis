@@ -13,15 +13,19 @@ import scala.collection.mutable.ArrayBuffer
   * Created by Administrator on 2018/2/14.
   */
 object StoreSalesCompetition {
-
+  val logger=Logger
+    .getLogger("info")
+  //    Logger.getLogger("org.apache").warn("大家好")
+  logger.info("——————————————————————————————————————————————————————————————")
 
 //  Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
-val logger=Logger.getLogger("com.jdlzy.dehug")
   def main(args: Array[String]): Unit = {
+//  .getRootLogger
+
     val spark: SparkSession = SparkSession.builder().appName("storeSales")
       .master("local[*]")
       .getOrCreate()
-    spark.sparkContext.setLogLevel("warn")
+//    spark.sparkContext.setLogLevel("warn")
     val goal = "Sales"
     val myid = "Id"
     val plot = true
