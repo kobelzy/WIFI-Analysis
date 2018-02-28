@@ -15,12 +15,13 @@ import scala.collection.mutable.ArrayBuffer
 object StoreSalesCompetition {
 
 
-  Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
-
+//  Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
+val logger=Logger.getLogger("com.jdlzy.dehug")
   def main(args: Array[String]): Unit = {
     val spark: SparkSession = SparkSession.builder().appName("storeSales")
       .master("local[*]")
       .getOrCreate()
+    spark.sparkContext.setLogLevel("warn")
     val goal = "Sales"
     val myid = "Id"
     val plot = true
@@ -31,8 +32,8 @@ object StoreSalesCompetition {
     train.show(10, false)
 
     val (trainByFill, testByFill) = processData(spark, train, test)
-    Logger.getLogger("org.apache").warn("train_Count:" + trainByFill.count())
-    Logger.getLogger("org.apache").warn("train_Count:" + testByFill.count())
+    logger.info("train_Count:" + trainByFill.count())
+    logger.info("train_Count:" + testByFill.count())
     //    features.filterNot(_ == "Id").map(feature => {
     //      (feature, trainByFill.filter(trainByFill(feature).isNull).count())
     //    }).foreach(println(_))
@@ -178,7 +179,7 @@ object StoreSalesCompetition {
     FE_StandarScaler(stages, numericFeatures)
     val targetFeatures = Array("Sales", "Customers")
 
-    val vectorFeatures: Array[String] = categoryFeatures.map(_ + "_onehot") ++ numericFeatures.map(_ + "_scaler") :+ "promos"
+    val vectorFeatures: Array[String] = categoryFeatures.map(_ + "_indexer_onehot") ++ numericFeatures.map(_ + "_scaler") :+ "Promos"
     val vectorAssembler = new VectorAssembler().setOutputCol("features")
       .setInputCols(vectorFeatures)
     stages += vectorAssembler
