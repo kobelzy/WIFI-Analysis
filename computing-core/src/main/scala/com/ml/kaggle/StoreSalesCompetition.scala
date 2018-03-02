@@ -46,8 +46,10 @@ object StoreSalesCompetition {
     //      (feature, testByFill.filter(testByFill(feature).isNull).count())
     //    }).foreach(println(_))
     val pipeline: Pipeline = featureEngineering(spark)
-    val model = pipeline.fit(trainByFill)
-    model.transform(trainByFill).show(10, false)
+    val trainfeatureEngineerModel = pipeline.fit(trainByFill)
+    trainfeatureEngineerModel.transform(trainByFill).show(10, false)
+    val testfeatureEngineerModel = pipeline.fit(testByFill)
+    testfeatureEngineerModel.transform(trainByFill).show(10, false)
   }
 
   def loadData(spark: SparkSession, path: String): (DataFrame, DataFrame) = {
