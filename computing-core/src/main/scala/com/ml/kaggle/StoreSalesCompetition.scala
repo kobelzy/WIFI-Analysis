@@ -25,7 +25,7 @@ object StoreSalesCompetition {
     val spark: SparkSession = SparkSession.builder().appName("storeSales")
       .master("local[*]")
       .getOrCreate()
-//    spark.sparkContext.setLogLevel("warn")
+    spark.sparkContext.setLogLevel("warn")
     val goal = "Sales"
     val myid = "Id"
     val plot = true
@@ -36,8 +36,8 @@ object StoreSalesCompetition {
     train.show(10, false)
 
     val (trainByFill, testByFill) = processData(spark, train, test)
-    logger.info("train_Count:" + trainByFill.count())
-    logger.info("train_Count:" + testByFill.count())
+    Logger.getLogger("org.apache").warn("train_Count:" + trainByFill.count())
+    Logger.getLogger("org.apache").warn("train_Count:" + testByFill.count())
     //    features.filterNot(_ == "Id").map(feature => {
     //      (feature, trainByFill.filter(trainByFill(feature).isNull).count())
     //    }).foreach(println(_))
