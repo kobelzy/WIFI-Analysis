@@ -47,9 +47,11 @@ object StoreSalesCompetition {
     //    }).foreach(println(_))
     val pipeline: Pipeline = featureEngineering(spark)
     val trainfeatureEngineerModel = pipeline.fit(trainByFill)
-    trainfeatureEngineerModel.transform(trainByFill).show(10, false)
+    val trainFeatures=trainfeatureEngineerModel.transform(trainByFill).cache()
     val testfeatureEngineerModel = pipeline.fit(testByFill)
-    testfeatureEngineerModel.transform(trainByFill).show(10, false)
+    val testFeatures=testfeatureEngineerModel.transform(trainByFill).cache()
+
+    //使用交叉检验方法选择最好的模型参数
   }
 
   def loadData(spark: SparkSession, path: String): (DataFrame, DataFrame) = {
