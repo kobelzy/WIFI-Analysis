@@ -49,7 +49,7 @@ object StoreSalesCompetition {
     val trainFeatures=trainfeatureEngineerModel.transform(trainByFill).cache()
     val testfeatureEngineerModel = pipeline.fit(testByFill)
     val testFeatures=testfeatureEngineerModel.transform(trainByFill).cache()
-    //使用交叉检验方法选择最好的模型参数
+    //使用交叉检验方法选择最好的模型参数,使用回归分析
   }
 
   def loadData(spark: SparkSession, path: String): (DataFrame, DataFrame) = {
