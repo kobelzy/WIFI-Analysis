@@ -4,9 +4,8 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.{Pipeline, PipelineStage, linalg}
 import org.apache.spark.sql.functions.{col, monotonically_increasing_id, udf}
-import org.apache.spark.sql.types.{DoubleType, IntegerType, LongType, StringType}
+import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, SparkSession}
-
 import scala.collection.mutable.ArrayBuffer
 
 /**
@@ -50,7 +49,6 @@ object StoreSalesCompetition {
     val trainFeatures=trainfeatureEngineerModel.transform(trainByFill).cache()
     val testfeatureEngineerModel = pipeline.fit(testByFill)
     val testFeatures=testfeatureEngineerModel.transform(trainByFill).cache()
-
     //使用交叉检验方法选择最好的模型参数
   }
 
