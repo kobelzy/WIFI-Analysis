@@ -51,6 +51,7 @@ object StoreSalesCompetition {
     val testFeatures=testfeatureEngineerModel.transform(trainByFill).cache()
 
     //使用交叉检验方法选择最好的模型参数,使用回归分析
+    //明天尝试一下xgboost on spark的执行。晚上先研究一下如何搭建
   }
 
   def loadData(spark: SparkSession, path: String): (DataFrame, DataFrame) = {
