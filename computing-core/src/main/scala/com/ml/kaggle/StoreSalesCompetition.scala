@@ -1,11 +1,13 @@
 package com.ml.kaggle
 
+import ml.dmlc.xgboost4j.scala.spark.XGBoostEstimator
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.{Pipeline, PipelineStage, linalg}
 import org.apache.spark.sql.functions.{col, monotonically_increasing_id, udf}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, SparkSession}
+
 import scala.collection.mutable.ArrayBuffer
 
 /**
@@ -52,6 +54,22 @@ object StoreSalesCompetition {
 
     //使用交叉检验方法选择最好的模型参数,使用回归分析
     //明天尝试一下xgboost on spark的执行。晚上先研究一下如何搭建
+    /**
+      * trainWithDataFrame的参数
+      * trainingData：DataFrame
+      * params：一个Map，包含了xgboost需要的参数
+      * round：迭代次数
+      * nWorkers：xgboost的workers数量，默认为0，表示数量与DataFrame的partition数量相同
+      * obj：目标函数，默认为null
+      * eval：检验函数，默认为null
+      * userExternalMmory：是否使用外部的内存寄存器，如果设置为true，将会在使用到spark的内存保存数据
+      * missing：dataset中的缺失值
+      * featureCol
+      * labelCol
+
+      */
+    val xgb=XGBoostEstimator
+
   }
 
   def loadData(spark: SparkSession, path: String): (DataFrame, DataFrame) = {
