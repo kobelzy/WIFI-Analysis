@@ -1,13 +1,12 @@
 package com.ml.kaggle
 
-import ml.dmlc.xgboost4j.scala.spark.XGBoostEstimator
+import ml.dmlc.xgboost4j.scala.spark.{XGBoost, XGBoostEstimator}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.{Pipeline, PipelineStage, linalg}
 import org.apache.spark.sql.functions.{col, monotonically_increasing_id, udf}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, SparkSession}
-
 import scala.collection.mutable.ArrayBuffer
 
 /**
@@ -69,6 +68,7 @@ object StoreSalesCompetition {
 
       */
     val xgb=XGBoostEstimator
+    XGBoost
 
   }
 
