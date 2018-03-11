@@ -21,7 +21,7 @@ object XGBoostTest {
     val params=Map( "eta" -> 0.1f,
       "max_depth" -> 2,
       "objective" -> "reg:linear")
-    val xgboostModel=XGBoost.trainWithDataFrame(trainDF,params,10,3,useExternalMemory = true)
+    val xgboostModel=XGBoost.trainWithDataFrame(trainDF,params,10,5,useExternalMemory = true)
     xgboostModel.transform(testDF).show(false)
   }
 }
