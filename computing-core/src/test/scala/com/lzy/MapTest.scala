@@ -34,7 +34,6 @@ map.foreach(println)
       mutableMap.getOrElseUpdate(fieldName,mutable.Map[String,Int](key1->value1))
           .+=(key1->value1)
     }
-
       mutableMap
         .mapValues(_.toMap).toMap
         .foreach(println)
