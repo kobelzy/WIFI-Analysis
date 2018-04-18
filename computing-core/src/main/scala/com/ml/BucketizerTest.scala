@@ -38,6 +38,9 @@ object BucketizerTest {
     val Q1=splitsQ(1)
     val Q3=splitsQ(3)
     println(Q1)
+
+
+
     val max_Whisker=Q3+(Q3-Q1)*1.5
     val min_Whisker=Q1-(Q3-Q1)*1.5
     val resultData=dataFrame.filter(row=>{
