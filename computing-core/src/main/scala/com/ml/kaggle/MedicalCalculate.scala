@@ -20,7 +20,8 @@ object MedicalCalculate{
     val data2_path="data_part2.txt"
     val train_path="train.csv"
     val test_path="test.csv"
-
+    val data_df=medicalCalculate.getDataDF(data1_path)
+    data_df.show(false)
 
   }
 
@@ -32,7 +33,7 @@ def getDataDF(path:String)={
   spark.read.option("header","true")
     .option("nullValue","NA")
     .option("inferSchema","true")
-
+.csv(base_path+path)
 
 }
 

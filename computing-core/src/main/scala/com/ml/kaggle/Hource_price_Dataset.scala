@@ -52,8 +52,9 @@ object Hource_price_Dataset {
       .option("header", "true")
       .option("nullValue", "NA")
       .option("inferSchema", "true")
+            .csv("F:\\BaiduYunDownload\\Kaggle课程(关注公众号菜鸟要飞，免费领取200G+教程)\\Kaggle实战班(关注公众号菜鸟要飞，免费领取200G+教程)\\七月kaggle(关注公众号菜鸟要飞，免费领取200G+教程)\\代码(关注公众号菜鸟要飞，免费领取200G+教程)\\lecture02_房价预测\\house price\\house_price_input\\test.csv")
 
-      .csv("hdfs://master:9000//user/root/var/lzy/data/train.csv")
+//      .csv("hdfs://master:9000//user/root/var/lzy/data/train.csv")
     train.show(10, truncate = false)
     //    test.show(10,truncate = false)
     import spark.implicits._

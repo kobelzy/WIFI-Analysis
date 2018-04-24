@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CompilerConfiguration">
+    <option name="DEFAULT_COMPILER" value="Eclipse" />
     <annotationProcessing>
       <profile name="Maven default annotation processors profile" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
@@ -16,9 +17,6 @@
       <module name="computing-core" target="1.8" />
       <module name="kafka-core" target="1.5" />
       <module name="web-server" target="1.5" />
-      <module name="WIFIProbeAnalysis_web" target="1.5" />
-      <module name="WIFIProbeAnalysis_web (1)" target="1.5" />
-      <module name="WIFIProbeAnalysis_web (2)" target="1.5" />
     </bytecodeTargetLevel>
   </component>
 </project>
