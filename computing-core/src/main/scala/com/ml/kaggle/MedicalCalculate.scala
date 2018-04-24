@@ -16,19 +16,21 @@ object MedicalCalculate{
     val sc=spark.sparkContext.setLogLevel("warn")
 
     val medicalCalculate=new MedicalCalculate(spark)
-    val data1_path="data_part1.txt"
-    val data2_path="data_part2.txt"
+    val data1_path="data_part1.txt"//3,673,450   ggg根据via去重之后
+    val data2_path="data_part2.txt"//3,673,450   根据via去重之后
     val train_path="train.csv"
     val test_path="test.csv"
     val data1_df=medicalCalculate.getDataDF(data2_path,"$")
     val data2_df=medicalCalculate.getDataDF(data2_path,"$")
+    import spark.implicits._
+//    val data_df=data1_df.join(data2_df,"vid")
+    val data_df1=data1_df.groupByKey(_.getAs[String](0)).count()
+    val data_df2=data1_df.groupByKey(_.getAs[String](0)).count()
 
-    val data_df=data1_df.join(data2_df,Seq("vid"),)
-    println(data_df.count())
+    println(data_df1.count())
+    println(data_df2.count())
     println(data1_df.count())
     print(data2_df.count())
-//    data1_df.show(false)
-data_df.printSchema()
   }
 
 }
