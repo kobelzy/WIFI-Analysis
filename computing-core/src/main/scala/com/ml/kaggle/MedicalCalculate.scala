@@ -73,9 +73,9 @@ def getDataDF(path:String,sep:String): DataFrame ={
    */
   def reduceData(data1_df:DataFrame,data2_df:DataFrame)={
     //首先，将每个用户变为一行，每一个特征作为一列
-    data1_df.groupByKey(_.getAs[String]("via"))
+    data1_df.groupByKey(_.getString(0))
             .mapGroups((via,iter)=>{
-              iter.map(_.mkString(","))
+              (via,iter.map(_.getAs[String](0)))
             }).toDF("via","features")
 
 
