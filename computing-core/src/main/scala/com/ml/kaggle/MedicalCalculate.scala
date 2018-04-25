@@ -72,11 +72,20 @@ def getDataDF(path:String,sep:String): DataFrame ={
   0、实际场景预处理
    */
   def reduceData(data1_df:DataFrame,data2_df:DataFrame)={
+//    val weightedClusterEntropy = clusterLabel.
+//      // Extract collections of labels, per cluster
+//      groupByKey { case (cluster, _) => cluster }.
+//      mapGroups { case (_, clusterLabels) =>
+//        val labels = clusterLabels.map { case (_, label) => label }.toSeq
+//        // Count labels in collections
+//        val labelCounts = labels.groupBy(identity).values.map(_.size)
+//        labels.size * entropy(labelCounts)
+//      }.collect()
     //首先，将每个用户变为一行，每一个特征作为一列
-    data1_df.groupByKey(_.getString(0))
-            .mapGroups((via,iter)=>{
+    data1_df.toDF("via","r1","r2").groupByKey(_.getString(0))
+            .mapGroups{case (via,iter)=>{
               (via,iter.map(_.getAs[String](0)))
-            }).toDF("via","features")
+            }}.toDF("via","features")
 
 
   }
