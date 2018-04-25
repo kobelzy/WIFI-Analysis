@@ -1,6 +1,7 @@
 package com.ml.kaggle
 
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.ml.regression.LinearRegression
+import org.apache.spark.sql.{DataFrame, KeyValueGroupedDataset, SparkSession}
 
 /**
   * Created by Administrator on 2018/4/24.
@@ -26,7 +27,6 @@ object MedicalCalculate{
     val data2_df=medicalCalculate.getDataDF(data2_path,"$")
     val train_df=medicalCalculate.getDataDF(train_path,",")
     val test_df=medicalCalculate.getDataDF(test_path,",")
-
     import spark.implicits._
 //    val data_df=data1_df.join(data2_df,"vid")
 //    val data_df1=data1_df.groupByKey(_.getAs[String](0)).count()
@@ -36,14 +36,25 @@ object MedicalCalculate{
 //    println(data_df2.count())
 //    println(data1_df.count())
 //    print(data2_df.count())
-    println(train_df.count())
-    println(test_df.count())
-      train_df.printSchema()
+val reduceData=medicalCalculate.reduceData(data1_df,data2_df)
+    reduceData.show(false)
+
 
   }
 
 }
 class MedicalCalculate(spark:SparkSession) {
+  /**
+    * 特征工程部分
+    * 1、异常值处理
+    * 2、缺失值处理
+    * 3、数据标准化
+    * 4、特征编码转换
+    * 5、特征选择
+    *
+    *
+    */
+
 import spark.implicits._
   val base_path="E:\\dataset\\medicalCalculate\\20180408\\"
 def getDataDF(path:String,sep:String): DataFrame ={
@@ -52,9 +63,30 @@ def getDataDF(path:String,sep:String): DataFrame ={
     .option("inferSchema","true")
       .option("sep",sep)
 .csv(base_path+path)
-
 }
 
+  /**
+    * 特征工程
+    */
+  /*
+  0、实际场景预处理
+   */
+  def reduceData(data1_df:DataFrame,data2_df:DataFrame)={
+    //首先，将每个用户变为一行，每一个特征作为一列
+    data1_df.groupByKey(_.getAs[String]("via"))
+            .mapGroups((via,iter)=>{
+              iter.map(_.mkString(","))
+            }).toDF("via","features")
+
+
+  }
+
+
+
+
+/*
+1、异常值处理
+ */
 
 
 }
