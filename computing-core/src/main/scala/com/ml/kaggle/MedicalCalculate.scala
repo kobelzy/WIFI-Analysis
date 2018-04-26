@@ -82,7 +82,7 @@ def getDataDF(path:String,sep:String): DataFrame ={
 //        labels.size * entropy(labelCounts)
 //      }.collect()
     //首先，将每个用户变为一行，每一个特征作为一列
-    data1_df.toDF("via","r1","r2").groupByKey(_.getString(0))
+    data1_df.groupByKey(_.getString(0))
             .mapGroups{case (via,iter)=>{
               (via,iter.map(_.getAs[String](0)))
             }}.toDF("via","features")
