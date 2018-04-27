@@ -11,7 +11,7 @@ object sortTest {
           .sliding(2)
         .map(line=>
           (line.head,line.last)
-        ).zipWithIndex.map(tuple=>((tuple._1._1,tuple._1._2),tuple._2+1))
+        ).zipWithIndex.map(tuple=>(tuple._1,tuple._2+1))
       .foreach(println)
   }
 }
