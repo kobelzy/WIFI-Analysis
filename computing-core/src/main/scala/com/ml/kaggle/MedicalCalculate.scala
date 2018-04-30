@@ -3,7 +3,7 @@ package com.ml.kaggle
 import breeze.plot._
 import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
 import org.apache.spark.sql.functions.{col, udf}
-import MedicalCalculate.data
+import MedicalCalculate.{data, id2dataInList}
 import org.apache.spark.sql.expressions.UserDefinedFunction
 /**
   * Created by Administrator on 2018/4/24.
@@ -14,6 +14,7 @@ import org.apache.spark.sql.expressions.UserDefinedFunction
   */
 object MedicalCalculate {
   case class data(vid:String,table_id:String,field_results:String)
+  case class id2dataInList(vid:String,list:List[data])
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder()
       .master("local[*]")
@@ -97,44 +98,34 @@ class MedicalCalculate(spark: SparkSession) {
       allData_df.groupByKey(_.table_id).keys.collectAsList()
     ).value
 
-    val withColumnName=""
-    val vid2tables_ds=allData_df.groupByKey(_.vid)
+    val vid2tables_ds: Dataset[id2dataInList] =allData_df.groupByKey(_.vid)
       .mapGroups{case (vid,iter)=>
         (vid,iter.toList)
-        }
-    val vid2table_ds=vid2tables_ds.map(_._2
-      .filter(case_data => {
-        //如果当前行数据有目标tableid，那么将其选出来，如果没有的话结果为空
-        case_data.table_id.equals(withColumnName)
-      }
-      ).map(_.field_results).headOption.orNull
-    ).toDF("result")
-    vid2tables_ds.withColumn(withColumnName,addFeature(vid2table_ds("result")))
+        }.as[id2dataInList]
+    withColumn(vid2tables_ds,"0102")
   }
 
 //  val unhotUDF = udf((vec: Vector) => vec.toArray.indexOf(1.0).toDouble)
-  val addFeature: UserDefinedFunction =udf((tableID:String)=>tableID)
+  val addFeature: UserDefinedFunction =udf((list:List[data],withColumnName:String)=>
+    list.filter(case_data => {
+      //如果当前行数据有目标tableid，那么将其选出来，如果没有的话结果为空
+      case_data.table_id.equals(withColumnName)
+    }
+    ).map(_.field_results).headOption.orNull
+  )
 //val tableIDInData_list=iter.toList.map(_.table_id)
 
   //for(tableID<-tableID_list){
 //  if(tableIDInData_list.contains(tableID)){
 
-  def withColumn(allData_df:Dataset[data],withColumnName:String)={
-    val withColumnName=""
-    val vid2tables_ds=allData_df.groupByKey(_.vid)
-      .mapGroups{case (vid,iter)=>
-        (vid,iter.toList)
-      }
-    val vid2table_ds=vid2tables_ds.map(_._2
-      .filter(case_data => {
-        //如果当前行数据有目标tableid，那么将其选出来，如果没有的话结果为空
-        case_data.table_id.equals(withColumnName)
-      }
-      ).map(_.field_results).headOption.orNull
-    ).toDF("result")
-    vid2tables_ds.withColumn(withColumnName,addFeature(vid2table_ds("result")))
-
-
+  /**
+    * 增加一列
+    * @param vid2tables_ds
+    * @param withColumnName
+    * @return
+    */
+  def withColumn(vid2tables_ds: Dataset[id2dataInList],withColumnName:String):DataFrame={
+    vid2tables_ds.withColumn(withColumnName,addFeature(vid2tables_ds.col("list"),withColumnName))
   }
 //  //包含了当钱需要的特征，将其加入到column中
 //}
