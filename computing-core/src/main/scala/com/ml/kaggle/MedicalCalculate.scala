@@ -37,11 +37,17 @@ object MedicalCalculate {
     val data2_df = medicalCalculate.getDataDF(data2_path, "$")
     val train_df = medicalCalculate.getDataDF(train_path, ",")
     val test_df = medicalCalculate.getDataDF(test_path, ",")
+import spark.implicits._
+    data1_df.union(data2_df)        .na.fill("")
+      .as[data].groupByKey(_.table_id).mapGroups{case (table_id,iter)=>
+      val fields:List[String]=iter.map(_.field_results).toList.distinct
+      (table_id,fields.size)
+    }.coalesce(1).write.csv("E:\\dataset\\medicalCalculate\\classicNum\\itme2NumByDistinct.csv")
 
-    val data1_test = medicalCalculate.getDataDF("data_mini.csv", "$")
-    val data2_test = medicalCalculate.getDataDF("data_mini.csv", "$")
-    val reduceData = medicalCalculate.reduceData(data1_test, data2_test)
-    reduceData.foreach(println)
+//    val data1_test = medicalCalculate.getDataDF("data_mini.csv", "$")
+    //    val data2_test = medicalCalculate.getDataDF("data_mini.csv", "$")
+    //    val reduceData = medicalCalculate.reduceData(data1_test, data2_test)
+    //    reduceData.foreach(println)
   }
 
   val addFeature: UserDefinedFunction = udf((list: Seq[data]) =>
