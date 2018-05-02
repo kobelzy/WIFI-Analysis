@@ -1,10 +1,11 @@
 package com.ml.kaggle
 
-import breeze.plot._
-import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
-import org.apache.spark.sql.functions.{col, udf}
-import MedicalCalculate.{data, id2dataInList}
+import com.ml.kaggle.MedicalCalculate.{addFeature, data, id2dataInList}
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.expressions.UserDefinedFunction
+import org.apache.spark.sql.functions.udf
+import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
+import scala.collection.mutable
 /**
   * Created by Administrator on 2018/4/24.
   */
@@ -13,8 +14,11 @@ import org.apache.spark.sql.expressions.UserDefinedFunction
   * 病人体检样例中，每个病人的一项体检会使用一条来表示，每个病人有多个体检项目
   */
 object MedicalCalculate {
-  case class data(vid:String,table_id:String,field_results:String)
-  case class id2dataInList(vid:String,list:List[data])
+
+  case class data(vid: String, table_id: String, field_results: String)
+
+  case class id2dataInList(vid: String, list: Seq[data])
+
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder()
       .master("local[*]")
@@ -33,9 +37,17 @@ object MedicalCalculate {
     val data2_df = medicalCalculate.getDataDF(data2_path, "$")
     val train_df = medicalCalculate.getDataDF(train_path, ",")
     val test_df = medicalCalculate.getDataDF(test_path, ",")
-    val reduceData = medicalCalculate.reduceData(data1_df, data2_df)
-    reduceData.show(false)
+
+    val data1_test = medicalCalculate.getDataDF("data_mini.csv", "$")
+    val data2_test = medicalCalculate.getDataDF("data_mini.csv", "$")
+    val reduceData = medicalCalculate.reduceData(data1_test, data2_test)
+    reduceData.foreach(println)
   }
+
+  val addFeature: UserDefinedFunction = udf((list: Seq[data]) =>
+    list.filter(_.table_id.equals("0102")).map(_.field_results).headOption.orNull[String]
+  )
+
 
 }
 
@@ -61,6 +73,7 @@ class MedicalCalculate(spark: SparkSession) {
       .option("inferSchema", "true")
       .option("sep", sep)
       .csv(base_path + path)
+
   }
 
   /**
@@ -69,7 +82,7 @@ class MedicalCalculate(spark: SparkSession) {
   /*
   0、实际场景预处理
    */
-  def reduceData(data1_df: DataFrame, data2_df: DataFrame) = {
+  def reduceData(data1_df: DataFrame, data2_df: DataFrame):RDD[(String, List[String])] = {
     //    val weightedClusterEntropy = clusterLabel.
     //      // Extract collections of labels, per cluster
     //      groupByKey { case (cluster, _) => cluster }.
@@ -88,50 +101,56 @@ class MedicalCalculate(spark: SparkSession) {
     //      .toDF("via","features")
 
     val allData_df = data1_df.union(data2_df)
-//      .toDF("via","table_id","field_results")
+        .na.fill("")
       .as[data]
-
     /*
     获取数据集中所有的特征标签
      */
-    val tableID_list = spark.sparkContext.broadcast(
-      allData_df.groupByKey(_.table_id).keys.collectAsList()
+    val tableID_arr = spark.sparkContext.broadcast(
+      allData_df.groupByKey(_.table_id).keys.collect()
     ).value
 
-    val vid2tables_ds: Dataset[id2dataInList] =allData_df.groupByKey(_.vid)
-      .mapGroups{case (vid,iter)=>
-        (vid,iter.toList)
-        }.as[id2dataInList]
-    withColumn(vid2tables_ds,"0102")
-  }
+    val vid2tables_rdd: RDD[(String, List[data])] = allData_df.groupByKey(_.vid)
+      .mapGroups { case (vid, iter) =>
+        (vid, iter.toList)
+      }.rdd
 
-//  val unhotUDF = udf((vec: Vector) => vec.toArray.indexOf(1.0).toDouble)
-  val addFeature: UserDefinedFunction =udf((list:List[data],withColumnName:String)=>
-    list.filter(case_data => {
-      //如果当前行数据有目标tableid，那么将其选出来，如果没有的话结果为空
-      case_data.table_id.equals(withColumnName)
+    vid2tables_rdd.map { case (vid, data_list) =>
+      val tableIDInData_list = data_list.map(_.table_id)
+      val fieldResult_List = mutable.ListBuffer[String]()
+      for (tableID <- tableID_arr) {
+        val index = tableIDInData_list.indexOf(tableID)
+        val fieldResult: String = index match {
+          case -1 => ""
+          case n => data_list(n).field_results
+        }
+        fieldResult_List += fieldResult
+      }
+      (vid, fieldResult_List.toList)
     }
-    ).map(_.field_results).headOption.orNull
-  )
-//val tableIDInData_list=iter.toList.map(_.table_id)
-
-  //for(tableID<-tableID_list){
-//  if(tableIDInData_list.contains(tableID)){
-
-  /**
-    * 增加一列
-    * @param vid2tables_ds
-    * @param withColumnName
-    * @return
-    */
-  def withColumn(vid2tables_ds: Dataset[id2dataInList],withColumnName:String):DataFrame={
-    vid2tables_ds.withColumn(withColumnName,addFeature(vid2tables_ds.col("list"),withColumnName))
   }
-//  //包含了当钱需要的特征，将其加入到column中
-//}
-  /*
-  1、异常值处理
-   */
 
 
-}
+
+    //for(tableID<-tableID_list){
+    //  if(tableIDInData_list.contains(tableID)){
+
+    /**
+      * 增加一列
+      *
+      * @param vid2tables_ds
+      * @param withColumnName
+      * @return
+      */
+    def withColumn(vid2tables_ds: Dataset[id2dataInList], withColumnName: String): DataFrame = {
+      vid2tables_ds.withColumn(withColumnName, addFeature(vid2tables_ds.col("list")))
+    }
+
+    //  //包含了当钱需要的特征，将其加入到column中
+    //}
+    /*
+    1、异常值处理
+     */
+
+
+  }

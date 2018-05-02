@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="IKAnalyzer2012_u6">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/computing-core/src/test/resources/jars/IKAnalyzer2012_u6.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
