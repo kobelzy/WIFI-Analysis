@@ -31,26 +31,31 @@ object DataSchemaCalculate {
     val sc = spark.sparkContext.setLogLevel("WARN")
 
     val medicalCalculate = new DataSchemaCalculate(spark)
-    val item2Num_path="E:\\dataset\\medicalCalculate\\classicNum\\itme2NumByDistinct.csv"
+    val item2Num_path="E:\\dataset\\medicalCalculate\\classicNum\\item2Num.csv"
+    val item2Num_distinct_path="E:\\dataset\\medicalCalculate\\classicNum\\item2Num_distinct.csv"
     val item2Num_df=medicalCalculate.getDataDF(item2Num_path,",")
+    val item2Num_distinct_df=medicalCalculate.getDataDF(item2Num_distinct_path,",")
 
+    val item2Num2Distinct_df=item2Num_df.join(item2Num_distinct_df,item2Num_df("table_id")===item2Num_distinct_df("table_id"))
+    println("item:"+item2Num2Distinct_df.count())
     val all_result_path = "all_result.csv"
     val all_result_df = medicalCalculate.getDataDF(base_path+all_result_path, "$")
 //
-    val types:Array[(String, String)]=all_result_df.dtypes
+    val types:Array[(String, String)]=all_result_df.drop("vid").dtypes
     val (strTypes,numericalTypes)=types.partition(_._2.equals("StringType"))
-    val item2Num_str_df=item2Num_df.filter(row=>strTypes.map(_._1.trim).contains(row.getAs[String](0).trim))
-    val item2Num_numerical_df=item2Num_df.filter(row=>numericalTypes.map(_._1.trim).contains(row.getAs[String](0).trim))
+    val item2Num_str_df=item2Num2Distinct_df.filter(row=>strTypes.map(_._1.trim).contains(row.getAs[String](0).trim))
+    val item2Num_numerical_df=item2Num2Distinct_df.filter(row=>numericalTypes.map(_._1.trim).contains(row.getAs[String](0).trim))
     println(strTypes.length)
     println(item2Num_str_df.count())
     println(numericalTypes.length)
     println(item2Num_numerical_df.count())
-    val fitem2Num_str_df=item2Num_df.filter(row=> !strTypes.map(_._1.trim).contains(row.getString(0).trim))
-    val fitem2Num_numerical_df=item2Num_df.filter(row=> !numericalTypes.map(_._1.trim).contains(row.getString(0).trim))
+    val fitem2Num_str_df=item2Num2Distinct_df.filter(row=> !strTypes.map(_._1.trim).contains(row.getString(0).trim))
+    val fitem2Num_numerical_df=item2Num2Distinct_df.filter(row=> !numericalTypes.map(_._1.trim).contains(row.getString(0).trim))
 
     println(fitem2Num_str_df.count())
     println(fitem2Num_numerical_df.count())
-    fitem2Num_str_df.except(item2Num_numerical_df).show(false)
+    strTypes
+    item2Num_str_df.except(fitem2Num_numerical_df).show(false)
     //对于非数值类型
     val item2Num_analyseType_df=medicalCalculate.columnAnalyse(item2Num_df,"noNum")
 //    println(item2Num_analyseType_df.filter(_.getString(3).equals("indeterminate")).count())

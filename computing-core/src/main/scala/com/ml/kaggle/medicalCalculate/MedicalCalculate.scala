@@ -40,7 +40,8 @@ object MedicalCalculate {
 
     val data1_test = medicalCalculate.getDataDF("data_mini.csv", "$")
         val data2_test = medicalCalculate.getDataDF("data_mini.csv", "$")
-        val reduceData = medicalCalculate.reduceData(data1_df, data2_df)
+//        val reduceData = medicalCalculate.reduceData(data1_df, data2_df)
+    medicalCalculate.getItemInfomation(data1_df,data2_df)
   }
 
   val addFeature: UserDefinedFunction = udf((list: Seq[data]) =>
@@ -74,7 +75,19 @@ class MedicalCalculate(spark: SparkSession) {
       .csv(base_path + path)
 
   }
+def getItemInfomation(data1_df: DataFrame, data2_df: DataFrame)={
 
+  val allData_df = data1_df.union(data2_df)
+    .na.fill("")
+    .as[data]
+
+
+    allData_df.groupByKey(_.table_id).mapGroups{case (table_id,iter)=>
+    val site=iter.map(_.field_results).toList.distinct.size
+      (table_id,site)
+    }.coalesce(1).write.csv("E:\\dataset\\medicalCalculate\\classicNum\\item2Num_distinct.csv")
+
+}
   /**
     * 特征工程
     */
@@ -82,22 +95,6 @@ class MedicalCalculate(spark: SparkSession) {
   0、实际场景预处理
    */
   def reduceData(data1_df: DataFrame, data2_df: DataFrame):RDD[String] = {
-    //    val weightedClusterEntropy = clusterLabel.
-    //      // Extract collections of labels, per cluster
-    //      groupByKey { case (cluster, _) => cluster }.
-    //      mapGroups { case (_, clusterLabels) =>
-    //        val labels = clusterLabels.map { case (_, label) => label }.toSeq
-    //        // Count labels in collections
-    //        val labelCounts = labels.groupBy(identity).values.map(_.size)
-    //        labels.size * entropy(labelCounts)
-    //      }.collect()
-    //首先，将每个用户变为一行，每一个特征作为一列
-    //    data1_df.printSchema()
-    //    data1_df.groupByKey(_.getString(0))
-    //            .mapGroups{case (via,iter)=>
-    //              (via,iter.toList.head.getString(1))
-    //            }
-    //      .toDF("via","features")
 
     val allData_df = data1_df.union(data2_df)
         .na.fill("")
