@@ -41,7 +41,8 @@ object MedicalCalculate {
     val data1_test = medicalCalculate.getDataDF("data_mini.csv", "$")
         val data2_test = medicalCalculate.getDataDF("data_mini.csv", "$")
 //        val reduceData = medicalCalculate.reduceData(data1_df, data2_df)
-    medicalCalculate.getItemInfomation(data1_df,data2_df)
+//    medicalCalculate.getItemInfomation(data1_df,data2_df)
+    medicalCalculate.showInterminateDatas(data1_df,data2_df)
   }
 
   val addFeature: UserDefinedFunction = udf((list: Seq[data]) =>
@@ -52,6 +53,23 @@ object MedicalCalculate {
 }
 
 class MedicalCalculate(spark: SparkSession) {
+  import spark.implicits._
+
+  def showInterminateDatas(data1_df: DataFrame, data2_df: DataFrame): Unit ={
+    val intlerminateArr=Array("319276","21A163","269066","G99110","549016","269062","300096","269067","459269","949006","21A097","21A165","300095","339113","179216","509061","4699","300103","549012","G49058","300090","E49012","21A010","21A006","949005","B19012","269063","300100","4967","Q49011","459270","539010","319177","E49009","B19010","I19028","549013","669013","2265","21A059","300094","I59002","21A108","269064","2264","B19009","509062","459326","509063","269065","809071","21A008")
+    val allData_df = data1_df.union(data2_df)
+      .na.fill("")
+      .as[data]
+    allData_df.filter(data=>intlerminateArr.contains(data.table_id)).groupByKey(_.table_id).mapGroups{case (table_id,iter)=>
+      val site=iter.map(_.field_results).toList.distinct
+        val siteSize=site.mkString("|")
+      (table_id,site.size,siteSize)
+    }.coalesce(1).write.csv("E:\\dataset\\medicalCalculate\\classicNum\\item2fieldResult.csv")
+
+
+  }
+
+
   /**
     * 特征工程部分
     * 1、异常值处理
@@ -63,7 +81,6 @@ class MedicalCalculate(spark: SparkSession) {
     *
     */
 
-  import spark.implicits._
 
   val base_path = "E:\\dataset\\medicalCalculate\\20180408\\"
 
