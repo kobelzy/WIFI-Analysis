@@ -1,10 +1,10 @@
-package com.ml.kaggle
+package com.ml.kaggle.medicalCalculate
 
-import com.ml.kaggle.MedicalCalculate.{addFeature, data, id2dataInList}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions.udf
 import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
+import MedicalCalculate.{data,id2dataInList,addFeature}
 import scala.collection.mutable
 /**
   * Created by Administrator on 2018/4/24.
@@ -37,17 +37,10 @@ object MedicalCalculate {
     val data2_df = medicalCalculate.getDataDF(data2_path, "$")
     val train_df = medicalCalculate.getDataDF(train_path, ",")
     val test_df = medicalCalculate.getDataDF(test_path, ",")
-import spark.implicits._
-    data1_df.union(data2_df)        .na.fill("")
-      .as[data].groupByKey(_.table_id).mapGroups{case (table_id,iter)=>
-      val fields:List[String]=iter.map(_.field_results).toList.distinct
-      (table_id,fields.size)
-    }.coalesce(1).write.csv("E:\\dataset\\medicalCalculate\\classicNum\\itme2NumByDistinct.csv")
 
-//    val data1_test = medicalCalculate.getDataDF("data_mini.csv", "$")
-    //    val data2_test = medicalCalculate.getDataDF("data_mini.csv", "$")
-    //    val reduceData = medicalCalculate.reduceData(data1_test, data2_test)
-    //    reduceData.foreach(println)
+    val data1_test = medicalCalculate.getDataDF("data_mini.csv", "$")
+        val data2_test = medicalCalculate.getDataDF("data_mini.csv", "$")
+        val reduceData = medicalCalculate.reduceData(data1_df, data2_df)
   }
 
   val addFeature: UserDefinedFunction = udf((list: Seq[data]) =>
@@ -88,7 +81,7 @@ class MedicalCalculate(spark: SparkSession) {
   /*
   0、实际场景预处理
    */
-  def reduceData(data1_df: DataFrame, data2_df: DataFrame):RDD[(String, List[String])] = {
+  def reduceData(data1_df: DataFrame, data2_df: DataFrame):RDD[String] = {
     //    val weightedClusterEntropy = clusterLabel.
     //      // Extract collections of labels, per cluster
     //      groupByKey { case (cluster, _) => cluster }.
@@ -115,15 +108,16 @@ class MedicalCalculate(spark: SparkSession) {
     val tableID_arr = spark.sparkContext.broadcast(
       allData_df.groupByKey(_.table_id).keys.collect()
     ).value
-
+    println(tableID_arr.mkString("$"))
     val vid2tables_rdd: RDD[(String, List[data])] = allData_df.groupByKey(_.vid)
       .mapGroups { case (vid, iter) =>
         (vid, iter.toList)
       }.rdd
 
-    vid2tables_rdd.map { case (vid, data_list) =>
+   val fieldResults_rdd= vid2tables_rdd.map { case (vid, data_list) =>
       val tableIDInData_list = data_list.map(_.table_id)
       val fieldResult_List = mutable.ListBuffer[String]()
+      fieldResult_List+=vid
       for (tableID <- tableID_arr) {
         val index = tableIDInData_list.indexOf(tableID)
         val fieldResult: String = index match {
@@ -132,8 +126,9 @@ class MedicalCalculate(spark: SparkSession) {
         }
         fieldResult_List += fieldResult
       }
-      (vid, fieldResult_List.toList)
+      fieldResult_List.toList.mkString("$")
     }
+    fieldResults_rdd
   }
 
 
