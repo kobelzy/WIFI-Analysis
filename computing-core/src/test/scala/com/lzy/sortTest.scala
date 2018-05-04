@@ -13,5 +13,7 @@ object sortTest {
           (line.head,line.last)
         ).zipWithIndex.map(tuple=>(tuple._1,tuple._2+1))
       .foreach(println)
+    println(10.0/3.0)
+    println("sjfid<".contains("\\<"))
   }
 }

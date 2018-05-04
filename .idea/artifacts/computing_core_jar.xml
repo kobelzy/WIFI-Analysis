@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="computing-core:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/computing_core_jar</output-path>
+    <root id="archive" name="computing-core.jar">
+      <element id="module-output" name="computing-core" />
+    </root>
+  </artifact>
+</component>

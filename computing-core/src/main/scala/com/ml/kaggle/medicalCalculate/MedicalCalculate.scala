@@ -40,9 +40,10 @@ object MedicalCalculate {
 
     val data1_test = medicalCalculate.getDataDF("data_mini.csv", "$")
         val data2_test = medicalCalculate.getDataDF("data_mini.csv", "$")
-//        val reduceData = medicalCalculate.reduceData(data1_df, data2_df)
+        val reduceData = medicalCalculate.reduceData(data1_df, data2_df)
+    reduceData.coalesce(1).saveAsTextFile("E:\\dataset\\medicalCalculate\\20180408\\all_data")
 //    medicalCalculate.getItemInfomation(data1_df,data2_df)
-    medicalCalculate.showInterminateDatas(data1_df,data2_df)
+//    medicalCalculate.showInterminateDatas(data1_df,data2_df)
   }
 
   val addFeature: UserDefinedFunction = udf((list: Seq[data]) =>
@@ -138,7 +139,13 @@ def getItemInfomation(data1_df: DataFrame, data2_df: DataFrame)={
           case -1 => ""
           case n => data_list(n).field_results
         }
-        fieldResult_List += fieldResult
+        if(fieldResult.contains("<")||fieldResult.contains(">")){
+          fieldResult_List += ""
+        }else if(fieldResult.equals("-")) {
+          fieldResult_List += "0.0"
+        }else {
+          fieldResult_List += fieldResult
+        }
       }
       fieldResult_List.toList.mkString("$")
     }

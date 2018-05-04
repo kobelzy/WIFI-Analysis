@@ -2,20 +2,16 @@ package com.lzy
 
 import org.ansj.recognition.impl.StopRecognition
 import org.ansj.splitWord.analysis.NlpAnalysis
-import org.apache
-import org.apache.spark
 import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
-import org.apache.spark.sql.{DataFrame, Row, SparkSession}
-import org.apache.spark.ml.linalg
 import org.apache.spark.sql.functions.udf
 import org.apache.spark.sql.types.StringType
+import org.apache.spark.sql.{DataFrame, SparkSession}
 /**
   * Created by Administrator on 2018/5/3.
   */
 
 object idfTest{
   def main(args: Array[String]): Unit = {
-    import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
     val spark = SparkSession.builder()
       .master("local[*]")
       .appName("medical")
@@ -26,8 +22,8 @@ object idfTest{
       (1, "Logistic regression models","离心沉淀TCT制片一张")
     )).toDF("label", "sentence","result")
     val idftest=new idfTest(spark)
-    var df=sentenceData
     val list=Array("sentence","result")
+    var df=sentenceData
     for(tableid<-list){
       df=idftest.executeNLP(df,tableid)
     }
@@ -60,7 +56,7 @@ class idfTest (spark:SparkSession){
     val rescaledData = idfModel.transform(allResult_nlp_token_tf_df)
     //删除之前计算过程中没有用的列。
     rescaledData.drop(columnName+"_nlp_token_tf",columnName+"_nlp_token",columnName+"_nlp",columnName)
-      .drop(columnName+"_nlp_token_tf",columnName+"_nlp_token")
+
   }
 
 
