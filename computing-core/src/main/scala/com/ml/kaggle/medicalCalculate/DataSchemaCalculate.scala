@@ -32,13 +32,13 @@ object DataSchemaCalculate {
   val sum_threshold = 20
 
   def main(args: Array[String]): Unit = {
-    //    val base_path = "E:\\dataset\\medicalCalculate\\20180408\\"
-    //val item2Num_path = "E:\\dataset\\medicalCalculate\\classicNum\\item2Num.csv"
-    //    val item2Num_distinct_path = "E:\\dataset\\medicalCalculate\\classicNum\\item2Num_distinct.csv"
+        val base_path = "E:\\dataset\\medicalCalculate\\20180408\\"
+    val item2Num_path = "E:\\dataset\\medicalCalculate\\classicNum\\item2Num.csv"
+        val item2Num_distinct_path = "E:\\dataset\\medicalCalculate\\classicNum\\item2Num_distinct.csv"
     //hdfs
-    val base_path = "hdfs://master:9000/user/lzy/201805/"
-    val item2Num_path = "hdfs://master:9000/user/lzy/201805/item2Num.csv"
-    val item2Num_distinct_path = "hdfs://master:9000/user/lzy/201805/item2Num_distinct.csv"
+//    val base_path = "hdfs://master:9000/user/lzy/201805/"
+//    val item2Num_path = "hdfs://master:9000/user/lzy/201805/item2Num.csv"
+//    val item2Num_distinct_path = "hdfs://master:9000/user/lzy/201805/item2Num_distinct.csv"
 
     val allResult_path = "all_result.csv"
     val train_path = "train.csv"
@@ -46,7 +46,7 @@ object DataSchemaCalculate {
 
 
     val spark = SparkSession.builder()
-      //      .master("local[*]")
+            .master("local[*]")
       .appName("medical")
       .getOrCreate()
     import spark.implicits._
@@ -127,7 +127,8 @@ object DataSchemaCalculate {
       result_df=result_df.join(prediction_df,result_df("vid_test")===prediction_df(aspect+"_vid")).drop(aspect+"_vid")
     }
 //    result_df.write.parquet("hdfs://master:9000/user/lzy/201805/result")
-result_df.rdd.saveAsTextFile("hdfs://master:9000/user/lzy/201805/result")
+//result_df.rdd.saveAsTextFile("hdfs://master:9000/user/lzy/201805/result")
+    result_df.show()
   }
 
   /**
