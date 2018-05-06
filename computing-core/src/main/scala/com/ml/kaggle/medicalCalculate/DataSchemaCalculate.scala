@@ -3,16 +3,15 @@ package com.ml.kaggle.medicalCalculate
 import com.ml.kaggle.medicalCalculate.DataSchemaCalculate.{dataCleanStr, distinct_threshold, sum_threshold}
 import org.ansj.recognition.impl.StopRecognition
 import org.ansj.splitWord.analysis.NlpAnalysis
-import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.ml.feature._
-import org.apache.spark.ml.regression.{GBTRegressionModel, GBTRegressor, LinearRegression}
+import org.apache.spark.ml.regression.{GBTRegressionModel, GBTRegressor}
 import org.apache.spark.ml.tuning.{ParamGridBuilder, TrainValidationSplit}
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions.udf
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
-
+import scala.collection.mutable
 import scala.util.Try
 
 /**
@@ -32,13 +31,13 @@ object DataSchemaCalculate {
   val sum_threshold = 20
 
   def main(args: Array[String]): Unit = {
-        val base_path = "E:\\dataset\\medicalCalculate\\20180408\\"
-    val item2Num_path = "E:\\dataset\\medicalCalculate\\classicNum\\item2Num.csv"
-        val item2Num_distinct_path = "E:\\dataset\\medicalCalculate\\classicNum\\item2Num_distinct.csv"
+//            val base_path = "E:\\dataset\\medicalCalculate\\20180408\\"
+//        val item2Num_path = "E:\\dataset\\medicalCalculate\\classicNum\\item2Num.csv"
+//            val item2Num_distinct_path = "E:\\dataset\\medicalCalculate\\classicNum\\item2Num_distinct.csv"
     //hdfs
-//    val base_path = "hdfs://master:9000/user/lzy/201805/"
-//    val item2Num_path = "hdfs://master:9000/user/lzy/201805/item2Num.csv"
-//    val item2Num_distinct_path = "hdfs://master:9000/user/lzy/201805/item2Num_distinct.csv"
+    val base_path = "hdfs://master:9000/user/lzy/201805/"
+    val item2Num_path = "hdfs://master:9000/user/lzy/201805/item2Num.csv"
+    val item2Num_distinct_path = "hdfs://master:9000/user/lzy/201805/item2Num_distinct.csv"
 
     val allResult_path = "all_result.csv"
     val train_path = "train.csv"
@@ -46,8 +45,8 @@ object DataSchemaCalculate {
 
 
     val spark = SparkSession.builder()
-            .master("local[*]")
-      .appName("medical")
+//      .master("local[*]")
+      .appName("medical2")
       .getOrCreate()
     import spark.implicits._
     val sc = spark.sparkContext.setLogLevel("WARN")
@@ -56,27 +55,43 @@ object DataSchemaCalculate {
 
     val item2Num_df = medicalCalculate.getDataDF(item2Num_path, ",")
     val item2Num_distinct_df = medicalCalculate.getDataDF(item2Num_distinct_path, ",")
-
+    val train_df = medicalCalculate.getDataDFOnStr(base_path + train_path, ",")
+    val test_df = medicalCalculate.getDataDF(base_path + test_path, ",").select($"vid").toDF("vid_test")
     val item2Num2Distinct_df: DataFrame = item2Num_df.join(item2Num_distinct_df, item2Num_df("table_id") === item2Num_distinct_df("table_id"))
       .map { case Row(tableid: String, num: Int, tableid2: String, ditinct: Int) =>
         (tableid, num, ditinct)
       }.toDF("table_id", "sum_num", "distinct_num")
       .filter(_.getInt(2) != 1)
-    val allResult_df: DataFrame = medicalCalculate.getDataDF(base_path + allResult_path, "$")
-    //
-    val types: Array[(String, String)] = allResult_df.drop("vid").dtypes
+    val allResult_df: DataFrame = medicalCalculate.getDataDF(base_path + allResult_path, "$").cache()
+    val dropColumns = mutable.ArrayBuffer[String]()
+    //过滤一些空值太多的
+    val num_rows=allResult_df.count()
+    for (tableId <- allResult_df.columns.drop(0)) {
+      allResult_df(tableId).isNull
+      val missColumns = allResult_df.filter(allResult_df(tableId).isNull).count()
+      if(missColumns!=0){
+      val missing_percent=missColumns/num_rows.toDouble
+      if (missing_percent > 0.9) {
+        dropColumns += tableId
+      }}
+    }
+    println("dropColumns:"+dropColumns.mkString(","))
+    var allResult_idf_df = allResult_df.drop(dropColumns:_*)
+
+    val types: Array[(String, String)] = allResult_idf_df.drop("vid").dtypes
     val (strTypes, numericalTypes) = types.partition(_._2.equals("StringType"))
     val item2Num_str_df = item2Num2Distinct_df.filter(row => strTypes.map(_._1).contains(row.getAs[String](0)))
     val item2Num_numerical_df = item2Num2Distinct_df.filter(row => numericalTypes.map(_._1).contains(row.getAs[String](0)))
 
     //对于非数值类型
     val item2Str_analyseType_df = medicalCalculate.columnAnalyseByScale(item2Num_str_df, "noNum")
+    medicalCalculate.labeldataClean(train_df).show()
     val item2Num_analyseType_df = medicalCalculate.columnAnalyseByScale(item2Num_numerical_df, "Num")
     //nlp需要进行nlp的数据
     val tableid_nlp_arr = item2Str_analyseType_df.filter(_.getString(3).equals("nlp")).select($"table_id".as[String]).collect()
+//      .slice(0, 2)
     println("noNum:" + item2Str_analyseType_df.count())
     println("noNum-nlp:" + tableid_nlp_arr.length)
-    var allResult_idf_df = allResult_df
     for (tableId <- tableid_nlp_arr) {
       allResult_idf_df = executeNLP(allResult_idf_df, tableId)
     }
@@ -86,7 +101,8 @@ object DataSchemaCalculate {
     val tableid_str_enum_arr = item2Str_analyseType_df.filter(_.getString(3).equals("enum")).select($"table_id".as[String]).collect()
     //num的离散变量
     val tableid_num_enum_arr = item2Num_analyseType_df.filter(_.getString(3).equals("enum")).select($"table_id".as[String]).collect()
-    val tableid_enum_arr: Array[String] = tableid_str_enum_arr ++ tableid_num_enum_arr
+    val tableid_enum_arr: Array[String] = (tableid_str_enum_arr ++ tableid_num_enum_arr)
+//      .slice(0, 2)
     println("noNum-str-enum:" + tableid_str_enum_arr.length)
     println("noNum-num-enum:" + tableid_num_enum_arr.length)
     println("noNum-enum:" + tableid_enum_arr.length)
@@ -97,38 +113,47 @@ object DataSchemaCalculate {
 
     // 连续型变量
     val tableid_numerical_arr = item2Num_analyseType_df.filter(_.getString(3).equals("numerical")).select($"table_id".as[String]).collect()
-    for (tableId <- tableid_numerical_arr) {
-      allResult_idf_df = executeNumerical(allResult_idf_df, tableId)
-    }
+//      .slice(0, 2)
+    val numerical_select = new VectorAssembler()
+      .setInputCols(tableid_numerical_arr)
+      .setOutputCol("numerical_column")
 
-//    allResult_idf_df.write.parquet("hdfs://master:9000/user/lzy/201805/feature_result")
-    val allFeatureTableId_arr = tableid_nlp_arr.map(_ + "_nlp_token_tf_idf") ++ tableid_enum_arr.map(_ + "_indexer_onehot") ++ tableid_numerical_arr.map(_ + "_scale")
-    val selectFeature=new VectorAssembler()
+    allResult_idf_df = numerical_select.transform(allResult_idf_df)
+    //    for (tableId <- tableid_numerical_arr) {
+    //      allResult_idf_df = executeNumerical(allResult_idf_df, tableId)
+    //    }
+    allResult_idf_df = executeNumerical(allResult_idf_df, "numerical_column")
+
+        allResult_idf_df.write
+          .option("timestampFormat", "yyyy/MM/dd HH:mm:ss ZZ")
+          .parquet("hdfs://master:9000/user/lzy/201805/feature_result")
+    val allFeatureTableId_arr = tableid_nlp_arr.map(_ + "_nlp_token_tf_idf") ++ tableid_enum_arr.map(_ + "_indexer_onehot") :+ "numerical_column_scale"
+    val selectFeature = new VectorAssembler()
       .setInputCols(allFeatureTableId_arr)
       .setOutputCol("features")
 
-    val allResult_assamble_df=selectFeature.transform(allResult_idf_df)
-        .select("vid","features")
+    val allResult_assamble_df = selectFeature.transform(allResult_idf_df)
+      .select("vid", "features").cache()
 
     //
-    val train_df = medicalCalculate.getDataDFOnStr(base_path + train_path, ",")
-    val test_df = medicalCalculate.getDataDF(base_path + test_path, ",").select($"vid").toDF("vid_test")
+
 
     val cleanTrain_df = medicalCalculate.labeldataClean(train_df)
 
-    val train2Feature_df = cleanTrain_df.join(allResult_assamble_df, cleanTrain_df("vid_train") === allResult_idf_df("vid"), "left")
-    val test2Feature_df = test_df.join(allResult_assamble_df, cleanTrain_df("vid_test") === allResult_idf_df("vid"), "left")
+    val train2Feature_df = cleanTrain_df.join(allResult_assamble_df, cleanTrain_df("vid_train") === allResult_idf_df("vid")).cache()
+    train2Feature_df.show()
+    val test2Feature_df = test_df.join(allResult_assamble_df, test_df("vid_test") === allResult_idf_df("vid"))
 
-    var result_df=test_df
-    val aspects_arr=Array("c1", "c2", "c3", "c4", "c5")
-    for(aspect<-aspects_arr){
-      val train_features_df=train2Feature_df.select("vid","features",aspect).toDF("vid","features","label")
-     val prediction_df= medicalCalculate.runGBDT(train_features_df,test2Feature_df).select("vid","prediction").toDF(aspect+"_vid",aspect)
-      result_df=result_df.join(prediction_df,result_df("vid_test")===prediction_df(aspect+"_vid")).drop(aspect+"_vid")
+    var result_df = test_df
+    val aspects_arr = Array("c1", "c2", "c3", "c4", "c5")
+    for (aspect <- aspects_arr) {
+      val train_features_df = train2Feature_df.select("vid", "features", aspect).toDF("vid", "features", "label")
+      val prediction_df = medicalCalculate.runGBDT(train_features_df, test2Feature_df).select("vid", "prediction").toDF(aspect + "_vid", aspect)
+      result_df = result_df.join(prediction_df, result_df("vid_test") === prediction_df(aspect + "_vid")).drop(aspect + "_vid")
     }
-//    result_df.write.parquet("hdfs://master:9000/user/lzy/201805/result")
-//result_df.rdd.saveAsTextFile("hdfs://master:9000/user/lzy/201805/result")
-    result_df.show()
+    //    result_df.write.parquet("hdfs://master:9000/user/lzy/201805/result")
+    result_df.rdd.saveAsTextFile("hdfs://master:9000/user/lzy/201805/result")
+//    result_df.show()
   }
 
   /**
@@ -187,7 +212,7 @@ object DataSchemaCalculate {
   }
 
   def executeNumerical(allResult_df: DataFrame, columnName: String): DataFrame = {
-    val scaler = new MaxAbsScaler()
+    val scaler = new MinMaxScaler()
       .setInputCol(columnName)
       .setOutputCol(columnName + "_scale")
 
@@ -212,8 +237,12 @@ object DataSchemaCalculate {
       val i2 = replaceStr.indexOf(".", 1)
       result = replaceStr.substring(0, i) + replaceStr.substring(i, i2)
     }
+    if (replaceStr.contains(">")) {
+      val i = replaceStr.indexOf(">")
+      result = replaceStr.substring(i + 1, replaceStr.length)
+    }
     if (result.contains("未做") || result.contains("未查") || result.contains("弃查")) {
-      result = null
+      result = Double.NaN.toString
     }
     if (Try(result.toDouble).isFailure && result.length > 4) {
       result = result.substring(0, 4)
@@ -249,15 +278,19 @@ class DataSchemaCalculate(spark: SparkSession) {
       .option("nullValue", "NA")
       .option("inferSchema", "true")
       .option("sep", sep)
+      .option("timestampFormat", "yyyy/MM/dd HH:mm:ss ZZ")
       .csv(path).repartition(40)
+      .na.fill(0)
   }
 
   def getDataDFOnStr(path: String, sep: String): DataFrame = {
     spark.read.option("header", "true")
       .option("nullValue", "NA")
+      .option("timestampFormat", "yyyy/MM/dd HH:mm:ss ZZ")
       //      .option("inferSchema", "true")
       .option("sep", sep)
       .csv(path)
+      .na.fill(0)
   }
 
   def columnAnalyseByScale(item2Num_df: DataFrame, columnType: String): DataFrame = {
@@ -356,32 +389,32 @@ class DataSchemaCalculate(spark: SparkSession) {
     }.toDF("vid_train", "c1", "c2", "c3", "c4", "c5")
   }
 
-  def runGBDT(df:DataFrame,test:DataFrame)={
-val gbdt=new GBTRegressor()
-    .setFeaturesCol("features")
-.setPredictionCol("prediction")
-    val paramGrid=new ParamGridBuilder()
-        .addGrid(gbdt.maxIter,Array(5,10,15))//迭代次数
-        .addGrid(gbdt.maxDepth,Array(5,7,9))//树的最大深度
-//        .addGrid(gbdt.minInfoGain,Array(0.0,0.1,0.3,0.5))//分裂节点时候的最小信息增益
-//        .addGrid(gbdt.minInstancesPerNode,Array(1,2,3,4))//分裂后子节点包好最少的实例数量
-//        .addGrid(gbdt.maxBins,Array(2,6,12,18,32))//连续特征离散化的最大数量，越大则分裂粒度越高
-//        .addGrid(gbdt.lossType,Array("L1","L2"))
-        .build()
+  def runGBDT(df: DataFrame, test: DataFrame) = {
+    val gbdt = new GBTRegressor()
+      .setFeaturesCol("features")
+      .setPredictionCol("prediction")
+    val paramGrid = new ParamGridBuilder()
+      .addGrid(gbdt.maxIter, Array(5, 10, 15)) //迭代次数
+      .addGrid(gbdt.maxDepth, Array(5, 7, 9)) //树的最大深度
+      //        .addGrid(gbdt.minInfoGain,Array(0.0,0.1,0.3,0.5))//分裂节点时候的最小信息增益
+      //        .addGrid(gbdt.minInstancesPerNode,Array(1,2,3,4))//分裂后子节点包好最少的实例数量
+      //        .addGrid(gbdt.maxBins,Array(2,6,12,18,32))//连续特征离散化的最大数量，越大则分裂粒度越高
+      //        .addGrid(gbdt.lossType,Array("L1","L2"))
+      .build()
 
-//    val pipeline=new Pipeline()
-//      .setStages()
+    //    val pipeline=new Pipeline()
+    //      .setStages()
 
-    val trainValidationSplit=new TrainValidationSplit()
+    val trainValidationSplit = new TrainValidationSplit()
       .setEstimator(gbdt)
       .setEvaluator(new RegressionEvaluator())
       .setEstimatorParamMaps(paramGrid)
       .setTrainRatio(0.8)
 
-    val cvModel=trainValidationSplit.fit(df)
-    val bestModel=cvModel.bestModel.asInstanceOf[GBTRegressionModel]
+    val cvModel = trainValidationSplit.fit(df)
+    val bestModel = cvModel.bestModel.asInstanceOf[GBTRegressionModel]
 
-    val test_df=bestModel.transform(test)
+    val test_df = bestModel.transform(test)
     test_df
   }
 }

@@ -41,7 +41,7 @@ object MedicalCalculate {
     val data1_test = medicalCalculate.getDataDF("data_mini.csv", "$")
         val data2_test = medicalCalculate.getDataDF("data_mini.csv", "$")
         val reduceData = medicalCalculate.reduceData(data1_df, data2_df)
-    reduceData.coalesce(1).saveAsTextFile("E:\\dataset\\medicalCalculate\\20180408\\all_data")
+    reduceData.coalesce(1).saveAsTextFile("E:\\dataset\\medicalCalculate\\20180408\\all_data2")
 //    medicalCalculate.getItemInfomation(data1_df,data2_df)
 //    medicalCalculate.showInterminateDatas(data1_df,data2_df)
   }
@@ -143,6 +143,10 @@ def getItemInfomation(data1_df: DataFrame, data2_df: DataFrame)={
           fieldResult_List += ""
         }else if(fieldResult.equals("-")) {
           fieldResult_List += "0.0"
+        }else     if (fieldResult.split("\\.").length > 2) {
+          val i = fieldResult.indexOf(".")
+          val i2 = fieldResult.indexOf(".", 1)
+          fieldResult_List += fieldResult.substring(0, i) + fieldResult.substring(i, i2)
         }else {
           fieldResult_List += fieldResult
         }
