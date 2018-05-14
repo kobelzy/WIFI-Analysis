@@ -42,7 +42,8 @@ object TimeFuture{
     /**
       * 做关联,基于订单表
       */
-   val joins= order_df.join(user_df,"user_id")
+      val od_df=order_df.withColumnRenamed("user_id","user_id1")
+   val joins=od_df.join(user_df,od_df("user_id1")===user_df("user_id"))
     joins.show()
 
   }
