@@ -1,8 +1,6 @@
-package com.ml.kaggle.medicalCalculate
+package com.ml.kaggle.JData
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.apache.spark.sql.functions.udf
-import org.apache.spark.sql.types.IntegerType
 /**
   * Created by Administrator on 2018/5/13.
   */
