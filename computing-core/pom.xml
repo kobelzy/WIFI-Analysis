@@ -136,6 +136,14 @@
             <artifactId>ansj_seg</artifactId>
             <version>5.1.6</version>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.cloudera.sparkts/sparkts -->
+        <dependency>
+            <groupId>com.cloudera.sparkts</groupId>
+            <artifactId>sparkts</artifactId>
+            <version>0.4.1</version>
+        </dependency>
+
     </dependencies>
 
     <build>
