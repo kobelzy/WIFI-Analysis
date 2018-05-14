@@ -20,7 +20,7 @@ object TimeFuture{
   case class order_df(user_id:Int,sku_id:Int,o_id:Int,o_date:Timestamp,o_area:Int,o_sku_num:Int)
   def main(args: Array[String]): Unit = {
     val spark=SparkSession.builder().appName("names")
-      .master("local[4]")
+      .master("local")
       .getOrCreate()
     import spark.implicits._
     spark.sparkContext.setLogLevel("WARN")
@@ -42,8 +42,9 @@ object TimeFuture{
     /**
       * 做关联,基于订单表
       */
-//      val od_df=order_df.withColumnRenamed("user_id","user_id1")
-   val joins=order_df.join(user_df)
+      val od_df=order_df.withColumnRenamed("user_id","user_id1")
+    import org.apache.spark.sql.functions._
+   val joins=od_df.joinWith(user_df,$"user_id1"===$"user_id")
     joins.show()
 
   }
