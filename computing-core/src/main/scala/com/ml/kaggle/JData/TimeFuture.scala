@@ -19,7 +19,7 @@ object TimeFuture{
   case class User_Case(user_id:Int,age:Int,sex:Int,user_lv_cd:Int)
   case class order_df(user_id:Int,sku_id:Int,o_id:Int,o_date:Timestamp,o_area:Int,o_sku_num:Int)
   def main(args: Array[String]): Unit = {
-    val spark=SparkSession.builder().appName("name")
+    val spark=SparkSession.builder().appName("names")
       .master("local[4]")
       .getOrCreate()
     import spark.implicits._
@@ -42,8 +42,8 @@ object TimeFuture{
     /**
       * 做关联,基于订单表
       */
-      val od_df=order_df.withColumnRenamed("user_id","user_id1")
-   val joins=od_df.join(user_df,od_df("user_id1")===user_df("user_id"))
+//      val od_df=order_df.withColumnRenamed("user_id","user_id1")
+   val joins=order_df.join(user_df)
     joins.show()
 
   }
