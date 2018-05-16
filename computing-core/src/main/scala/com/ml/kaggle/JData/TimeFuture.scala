@@ -12,7 +12,7 @@ object TimeFuture {
     val sku = "jdata_sku_basic_info.csv"
     val user_basic = "jdata_user_basic_info.csv"
     val user_action = "jdata_user_action.csv"
-    val user_order = "jdata_user_order_test.csv"
+    val user_order = "jdata_user_order.csv"
     val user_comment = "jdata_user_comment_score.csv"
 
     case class Sku_Case(sku_id: Int, price: Double, cate: Integer, para_1: Double, para_2: Int, para_3: Int)
@@ -33,11 +33,11 @@ object TimeFuture {
         val skuSourcd_df = timeFuture.getSourceData(basePath + sku)
 
         //用户信息,user_id,age,sex,user_lv_cd
-        val user_df = timeFuture.getSourceData(basePath + user_basic).toDF("user_id", "age", "sex", "user_lv_cd").cache()
+        val user_df = timeFuture.getSourceData(basePath + user_basic).cache()
         //用户行为，user_id,sku_id,a_date,a_num,a_type
         //    val action_df=timeFuture.getSourceData(basePath+user_action)
         //订单表，user_id,sku_id,o_id,o_date,o_area,o_sku_num
-        val order_df = timeFuture.getSourceData(basePath + user_order).toDF("user_id", "sku_id", "o_id", "o_date", "o_area", "o_sku_num").cache()
+        val order_df = timeFuture.getSourceData(basePath + user_order).cache()
         //评价表,user_id,comment_create_tm,o_id,score_level
 //    val comment_df=timeFuture.getSourceData(basePath+user_comment)
 
@@ -47,9 +47,10 @@ object TimeFuture {
         /**
           * 做关联,基于订单表
           */
-        val joins:DataFrame = order_df.join(user_df, "user_id")
-        joins.select("user_id","age").show(false)
-
+//        val joins:DataFrame = order_df.join(user_df, "user_id")
+//        joins.printSchema()
+        println(user_df.count())
+        println(order_df.select("user_id").distinct().count())
     }
 }
 
