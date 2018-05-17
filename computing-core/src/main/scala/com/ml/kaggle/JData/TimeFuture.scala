@@ -3,7 +3,9 @@ package com.ml.kaggle.JData
 import java.sql.Timestamp
 
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
+
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 /**
   * Created by Administrator on 2018/5/14.
   */
@@ -85,27 +87,32 @@ class TimeFuture(spark: SparkSession) {
           (sku_id,(o_id,o_date,o_area,o_sku_num))
         })
         //聚合到商品粒度
-       val sku2other_grouped_list: Map[Int, Unit] = sku2other_list.groupBy(_._1)
+       val sku2other_grouped_list: Map[Int, List[(Int, Timestamp, Int, Int, Array[Timestamp])]] = sku2other_list.groupBy(_._1)
             .mapValues { sku2other_list =>
               //根据时间戳进行排序
               val sku2other_sorted_list = sku2other_list.sortBy(_._2._2)
-              val list=
+              var o_id2timeZone_list=mutable.ListBuffer[(Int,Timestamp,Int,Int,Array[Timestamp])]()
               for (i <- sku2other_sorted_list.indices)  {
                 val (sku_id, (o_id, o_date, o_area, o_sku_num)) = sku2other_sorted_list(i)
-               val o_id2timeZone= i match {
+               i match {
                   //如果为0，那么是最小的时间戳，使用( ,t]格式
-                  case 0 => (o_id, o_date, o_area, o_sku_num, Array(sku2other_sorted_list.head._2._2))
+                  case 0 => o_id2timeZone_list += Tuple5(o_id, o_date, o_area, o_sku_num, Array(sku2other_sorted_list.head._2._2))
                   //如果是最后一个值，那么使用(t, )
-                  case sku2other_sorted_list.length - 1 => (o_id, o_date, o_area, o_sku_num, Array(sku2other_sorted_list.last._2._2))
+                  case sku2other_sorted_list.length - 1 =>o_id2timeZone_list += Tuple5(o_id, o_date, o_area, o_sku_num, Array(sku2other_sorted_list.last._2._2))
                   //那么使用(t-1,t]
-                  case _ => (o_id, o_date, o_area, o_sku_num, Array(sku2other_sorted_list(i - 1)._2._2, o_date))
+                  case _ => o_id2timeZone_list +=Tuple5(o_id, o_date, o_area, o_sku_num, Array(sku2other_sorted_list(i - 1)._2._2, o_date))
                 }
-                o_id2timeZone
               }
+              o_id2timeZone_list.toList
             }
         //扩充到用户粒度
-
-          Array("")
+      val sku2other_timeZone_list= sku2other_grouped_list.flatMap{case (sku_id,o_id2timeZone_list)=>
+          o_id2timeZone_list.map{case (o_id, o_date, o_area, o_sku_num,arr)=>
+            (sku_id, o_date, o_area, o_sku_num,arr)
+          }
+        }
+        //扩充到order粒度
+        sku2other_timeZone_list.map{case  (sku_id, o_date, o_area, o_sku_num,arr)=>(user_id,sku_id, o_date, o_area, o_sku_num,arr)}
       }
 
   }
