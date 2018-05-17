@@ -55,8 +55,8 @@ object TimeFuture {
 //    println(user_df.count())
 //    println(order_df.select("user_id").distinct().count())
     val result:RDD[(Int, Int, Timestamp, Int, Int, Array[Timestamp])]=timeFuture.unionOrder2Action(order_df,user_df)
-//    result.foreach(tuple=>println(tuple._1,tuple._2,tuple._3,tuple._4,tuple._5,tuple._6.mkString(",")))
-    result.foreach(tuple=>println(tuple._1,tuple._2,tuple._3,tuple._4,tuple._5,tuple._6.length))
+    result.foreach(tuple=>println(tuple._1,tuple._2,tuple._3,tuple._4,tuple._5,tuple._6.mkString(",")))
+//    result.foreach(tuple=>println(tuple._1,tuple._2,tuple._3,tuple._4,tuple._5,tuple._6.length))
   }
 }
 
@@ -104,11 +104,11 @@ import spark.implicits._
               for (i <- sku2other_sorted_list.indices)  {
                 val (sku_id, (o_id, o_date, o_area, o_sku_num)) = sku2other_sorted_list(i)
                 if(i==0){
-                  o_id2timeZone_list += Tuple5(o_id, o_date, o_area, 0, Array(sku2other_sorted_list.head._2._2))
+                  o_id2timeZone_list += Tuple5(o_id, o_date, o_area, o_sku_num, Array(sku2other_sorted_list.head._2._2))
                 }else if(i==lastIndex){
-                  o_id2timeZone_list += Tuple5(o_id, o_date, o_area, 50, Array(sku2other_sorted_list.last._2._2))
+                  o_id2timeZone_list += Tuple5(o_id, o_date, o_area, o_sku_num, Array(sku2other_sorted_list.last._2._2))
                 }else{
-                  o_id2timeZone_list +=Tuple5(o_id, o_date, o_area, 100, Array(sku2other_sorted_list(i - 1)._2._2, o_date))
+                  o_id2timeZone_list +=Tuple5(o_id, o_date, o_area, o_sku_num, Array(sku2other_sorted_list(i - 1)._2._2, o_date))
                 }
 //               i match {
 //                  //如果为0，那么是最小的时间戳，使用( ,t]格式
