@@ -138,9 +138,10 @@ import spark.implicits._
       }
   //用户行为，user_id,sku_id,a_date,a_num,a_type
 //每个用户每一天的浏览记录
-//  action_df.map{case Row(user_id:Int,sku_id:Int,a_date:Timestamp,a_num:Int,a_type:Int)=>(user_id,(sku_id,a_date,a_num,a_type))}
-//  .rdd
-
+  val action_rdd=action_df.map{case Row(user_id:Int,sku_id:Int,a_date:Timestamp,a_num:Int,a_type:Int)=>((user_id,sku_id),(a_date,a_num,a_type))}
+  .rdd
+      .groupByKey().mapValues(_.toList)
+    order_timeZone_rdd.leftOuterJoin(action_rdd)
     order_timeZone_rdd
   }
 
