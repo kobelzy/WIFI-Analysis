@@ -54,9 +54,10 @@ object TimeFuture {
     //        joins.printSchema()
 //    println(user_df.count())
 //    println(order_df.select("user_id").distinct().count())
-    val result:RDD[(Int, Int, Timestamp, Int, Int, Array[Timestamp])]=timeFuture.unionOrder2Action(order_df,user_df)
-    result.foreach(tuple=>println(tuple._1,tuple._2,tuple._3,tuple._4,tuple._5,tuple._6.mkString(",")))
+    val result: RDD[((Int, Int), List[(Int, Timestamp, Int, Int, Array[Timestamp])])] =timeFuture.unionOrder2Action(order_df,user_df)
+//    result.foreach(tuple=>println(tuple._1,tuple._2,tuple._3,tuple._4,tuple._5,tuple._6.mkString(",")))
 //    result.foreach(tuple=>println(tuple._1,tuple._2,tuple._3,tuple._4,tuple._5,tuple._6.length))
+    result.foreach(println)
   }
 }
 
@@ -76,14 +77,14 @@ import spark.implicits._
     data
   }
 
-  def unionOrder2Action(order_df: DataFrame, action_df: DataFrame):RDD[(Int, Int, Timestamp, Int, Int, Array[Timestamp])] = {
+  def unionOrder2Action(order_df: DataFrame, action_df: DataFrame):RDD[((Int, Int), List[(Int, Timestamp, Int, Int, Array[Timestamp])])] = {
     val order_columns=Array("user_id","sku_id","o_id","o_date","o_area","o_sku_num")
     //订单表，user_id,sku_id,o_id,o_date,o_area,o_sku_num
 //    order_df.groupByKey(_.getAs[Int](0))
 //      .flatMapGroups{case Row(user_id:Int,sku_id:Int,o_id:Int,o_area:Int,o_sku_num:Int)=>
 //        (sku_id,o_id,o_area,o_sku_num)
 //      }
-   val order_timeZone_rdd= order_df.map{case Row(user_id:Int,sku_id:Int,o_id:Int,o_date:Timestamp,o_area:Int,o_sku_num:Int)=>(user_id,(sku_id,o_id,o_date,o_area,o_sku_num))}
+   val order_timeZone_rdd: RDD[((Int, Int), List[(Int, Timestamp, Int, Int, Array[Timestamp])])] = order_df.map{case Row(user_id:Int,sku_id:Int,o_id:Int,o_date:Timestamp,o_area:Int,o_sku_num:Int)=>(user_id,(sku_id,o_id,o_date,o_area,o_sku_num))}
       .rdd
       .groupByKey()
       .flatMap{case (user_id,iter)=>
@@ -92,7 +93,7 @@ import spark.implicits._
           (sku_id,(o_id,o_date,o_area,o_sku_num))
         })
         //聚合到商品粒度
-       val sku2other_grouped_list: Map[Int, List[(Int, Timestamp, Int, Int, Array[Timestamp])]] = sku2other_list.groupBy(_._1)
+       val sku2other_grouped_map: Map[Int, List[(Int, Timestamp, Int, Int, Array[Timestamp])]] = sku2other_list.groupBy(_._1)
             .mapValues { sku2other_list =>
               //根据时间戳进行排序
               val sku2other_sorted_list = sku2other_list.sortBy(_._2._2.getTime)
@@ -122,7 +123,77 @@ import spark.implicits._
               o_id2timeZone_list.toList
             }
         //扩充到用户粒度
-      val sku2other_timeZone_list= sku2other_grouped_list.flatMap{case (sku_id,o_id2timeZone_list)=>
+//      val sku2other_timeZone_list= sku2other_grouped_list.flatMap{case (sku_id,o_id2timeZone_list)=>
+//          o_id2timeZone_list.map{case (o_id, o_date, o_area, o_sku_num,arr)=>
+//            (sku_id, o_date, o_area, o_sku_num,arr)
+//          }
+//        }
+        //扩充到order粒度
+//        sku2other_grouped_map.map{case  (sku_id, o_date, o_area, o_sku_num,arr)=>(user_id,sku_id, o_date, o_area, o_sku_num,arr)}
+
+        sku2other_grouped_map.map(sku2other=>{
+          val sku_id=sku2other._1
+          val list=sku2other._2
+          ((user_id,sku_id),list)})
+      }
+  //用户行为，user_id,sku_id,a_date,a_num,a_type
+//每个用户每一天的浏览记录
+//  action_df.map{case Row(user_id:Int,sku_id:Int,a_date:Timestamp,a_num:Int,a_type:Int)=>(user_id,(sku_id,a_date,a_num,a_type))}
+//  .rdd
+
+    order_timeZone_rdd
+  }
+
+
+
+
+  def unionOrder2Action2(order_df: DataFrame, action_df: DataFrame):RDD[(Int, Int, Timestamp, Int, Int, Array[Timestamp])] = {
+    val order_columns=Array("user_id","sku_id","o_id","o_date","o_area","o_sku_num")
+    //订单表，user_id,sku_id,o_id,o_date,o_area,o_sku_num
+    //    order_df.groupByKey(_.getAs[Int](0))
+    //      .flatMapGroups{case Row(user_id:Int,sku_id:Int,o_id:Int,o_area:Int,o_sku_num:Int)=>
+    //        (sku_id,o_id,o_area,o_sku_num)
+    //      }
+    val order_timeZone_rdd= order_df.map{case Row(user_id:Int,sku_id:Int,o_id:Int,o_date:Timestamp,o_area:Int,o_sku_num:Int)=>(user_id,(sku_id,o_id,o_date,o_area,o_sku_num))}
+      .rdd
+      .groupByKey()
+      .flatMap{case (user_id,iter)=>
+        val sku2other_list:List[(Int, (Int, Timestamp, Int, Int))]= iter.toList.map(tuple=>{
+          val  (sku_id,o_id,o_date,o_area,o_sku_num)=tuple
+          (sku_id,(o_id,o_date,o_area,o_sku_num))
+        })
+        //聚合到商品粒度
+        val sku2other_grouped_list: Map[Int, List[(Int, Timestamp, Int, Int, Array[Timestamp])]] = sku2other_list.groupBy(_._1)
+          .mapValues { sku2other_list =>
+            //根据时间戳进行排序
+            val sku2other_sorted_list = sku2other_list.sortBy(_._2._2.getTime)
+
+
+
+            var o_id2timeZone_list=mutable.ListBuffer[(Int,Timestamp,Int,Int,Array[Timestamp])]()
+            val lastIndex:Int=sku2other_sorted_list.size-1
+            for (i <- sku2other_sorted_list.indices)  {
+              val (sku_id, (o_id, o_date, o_area, o_sku_num)) = sku2other_sorted_list(i)
+              if(i==0){
+                o_id2timeZone_list += Tuple5(o_id, o_date, o_area, o_sku_num, Array(sku2other_sorted_list.head._2._2))
+              }else if(i==lastIndex){
+                o_id2timeZone_list += Tuple5(o_id, o_date, o_area, o_sku_num, Array(sku2other_sorted_list(i - 1)._2._2, o_date))
+              }else{
+                o_id2timeZone_list +=Tuple5(o_id, o_date, o_area, o_sku_num, Array(sku2other_sorted_list(i - 1)._2._2, o_date))
+              }
+              //               i match {
+              //                  //如果为0，那么是最小的时间戳，使用( ,t]格式
+              //                  case 0 => o_id2timeZone_list += Tuple5(o_id, o_date, o_area, 0, Array(sku2other_sorted_list.head._2._2))
+              //                  //如果是最后一个值，那么使用(t, )
+              //                  case lastIndex =>o_id2timeZone_list += Tuple5(o_id, o_date, o_area, 50, Array(sku2other_sorted_list.last._2._2))
+              //                  //那么使用(t-1,t]
+              //                  case _ => o_id2timeZone_list +=Tuple5(o_id, o_date, o_area, 100, Array(sku2other_sorted_list(i - 1)._2._2, o_date))
+              //                }
+            }
+            o_id2timeZone_list.toList
+          }
+        //扩充到用户粒度
+        val sku2other_timeZone_list= sku2other_grouped_list.flatMap{case (sku_id,o_id2timeZone_list)=>
           o_id2timeZone_list.map{case (o_id, o_date, o_area, o_sku_num,arr)=>
             (sku_id, o_date, o_area, o_sku_num,arr)
           }
@@ -130,16 +201,12 @@ import spark.implicits._
         //扩充到order粒度
         sku2other_timeZone_list.map{case  (sku_id, o_date, o_area, o_sku_num,arr)=>(user_id,sku_id, o_date, o_area, o_sku_num,arr)}
       }
-  //用户行为，user_id,sku_id,a_date,a_num,a_type
-//每个用户每一天的浏览记录
-  action_df.map{case Row(user_id:Int,sku_id:Int,a_date:Timestamp,a_num:Int,a_type:Int)=>(user_id,(sku_id,a_date,a_num,a_type))}
-  .rdd
+    //用户行为，user_id,sku_id,a_date,a_num,a_type
+    //每个用户每一天的浏览记录
+    //  action_df.map{case Row(user_id:Int,sku_id:Int,a_date:Timestamp,a_num:Int,a_type:Int)=>(user_id,(sku_id,a_date,a_num,a_type))}
+    //  .rdd
+    order_timeZone_rdd
   }
-
-
-
-
-
 
 
 
