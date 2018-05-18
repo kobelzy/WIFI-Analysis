@@ -106,7 +106,7 @@ import spark.implicits._
                 if(i==0){
                   o_id2timeZone_list += Tuple5(o_id, o_date, o_area, o_sku_num, Array(sku2other_sorted_list.head._2._2))
                 }else if(i==lastIndex){
-                  o_id2timeZone_list += Tuple5(o_id, o_date, o_area, o_sku_num, Array(sku2other_sorted_list.last._2._2))
+                  o_id2timeZone_list += Tuple5(o_id, o_date, o_area, o_sku_num, Array(sku2other_sorted_list(i - 1)._2._2, o_date))
                 }else{
                   o_id2timeZone_list +=Tuple5(o_id, o_date, o_area, o_sku_num, Array(sku2other_sorted_list(i - 1)._2._2, o_date))
                 }
@@ -130,8 +130,10 @@ import spark.implicits._
         //扩充到order粒度
         sku2other_timeZone_list.map{case  (sku_id, o_date, o_area, o_sku_num,arr)=>(user_id,sku_id, o_date, o_area, o_sku_num,arr)}
       }
-
-    order_timeZone_rdd
+  //用户行为，user_id,sku_id,a_date,a_num,a_type
+//每个用户每一天的浏览记录
+  action_df.map{case Row(user_id:Int,sku_id:Int,a_date:Timestamp,a_num:Int,a_type:Int)=>(user_id,(sku_id,a_date,a_num,a_type))}
+  .rdd
   }
 
 
