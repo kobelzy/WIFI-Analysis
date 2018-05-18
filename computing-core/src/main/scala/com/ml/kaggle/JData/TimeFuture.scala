@@ -142,6 +142,7 @@ import spark.implicits._
   .rdd
       .groupByKey().mapValues(_.toList)
     order_timeZone_rdd.leftOuterJoin(action_rdd)
+
     order_timeZone_rdd
   }
 
