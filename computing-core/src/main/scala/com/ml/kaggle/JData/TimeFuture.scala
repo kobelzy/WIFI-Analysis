@@ -1,7 +1,9 @@
 package com.ml.kaggle.JData
 
 import java.sql.Timestamp
+import java.time.{ZoneId, ZonedDateTime}
 
+import com.cloudera.sparkts.{DateTimeIndex, IrregularDateTimeIndex, TimeSeries, TimeSeriesRDD}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 
@@ -32,7 +34,7 @@ object TimeFuture {
     val timeFuture = new TimeFuture(spark)
 
     //商品信息,sku_id,price,cate,para_1,para_2,para_3
-    val skuSourcd_df = timeFuture.getSourceData(basePath + sku)
+    val sku_df = timeFuture.getSourceData(basePath + sku)
 
     //用户信息,user_id,age,sex,user_lv_cd
     val user_df = timeFuture.getSourceData(basePath + user_basic).cache()
@@ -50,14 +52,20 @@ object TimeFuture {
     /**
       * 做关联,基于订单表
       */
-    //        val joins:DataFrame = order_df.join(user_df, "user_id")
+//            val order2user_df:DataFrame = order_df.join(user_df, "user_id")
+//            val order2user2sku_df=order2user_df.join(sku_df,"sku_id")
+//            TimeSeriesRDD.timeSeriesRDDFromObservations()
+    timeFuture. createTimeIndexs(order_df)
+      .toZonedDateTimeArray().foreach(println)
+
+
     //        joins.printSchema()
 //    println(user_df.count())
 //    println(order_df.select("user_id").distinct().count())
-    val result: RDD[((Int, Int), List[(Int, Timestamp, Int, Int, Array[Timestamp])])] =timeFuture.unionOrder2Action(order_df,user_df)
+//    val result: RDD[((Int, Int), List[(Int, Timestamp, Int, Int, Array[Timestamp])])] =timeFuture.unionOrder2Action(order_df,user_df)
 //    result.foreach(tuple=>println(tuple._1,tuple._2,tuple._3,tuple._4,tuple._5,tuple._6.mkString(",")))
 //    result.foreach(tuple=>println(tuple._1,tuple._2,tuple._3,tuple._4,tuple._5,tuple._6.length))
-    result.foreach(println)
+//    result.foreach(println)
   }
 }
 
@@ -142,7 +150,14 @@ import spark.implicits._
   .rdd
       .groupByKey().mapValues(_.toList)
     order_timeZone_rdd.leftOuterJoin(action_rdd)
-
+      .map{case ((user_id,sku_id),list1,list2)=>
+          //list1 (o_id, o_date, o_area, o_sku_num,arr)
+        //list2 (a_date,a_num,a_type)
+        //将list2中的a_date插入list1的arr范围中，遍历list1，子遍历list2.
+        // 如果时间在arr中，那么新加一个arr，将时间段放进去，以及a_num,a_type.
+        //可以将行为时间转化为和购买日期的差放进去
+        ///但是一个订单可能包含多个行为，怎么版？
+      }
     order_timeZone_rdd
   }
 
@@ -212,8 +227,16 @@ import spark.implicits._
 
 
 
+def createTimeIndexs(data:DataFrame):IrregularDateTimeIndex={
+  val zoneId=ZoneId.systemDefault()
+val dt_arr=data.select("o_date").map{case(dt:Timestamp)=>
+//  ZonedDateTime.of(startTime.substring(0, 4).toInt, startTime.substring(4).toInt, 1, 0, 0, 0, 0, zone)
+    dt.getTime
+}.collect()
 
-
+ val irregularDTI: IrregularDateTimeIndex = DateTimeIndex.irregular(dt_arr)
+  irregularDTI
+}
 
 
 
